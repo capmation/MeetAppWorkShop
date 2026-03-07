@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv /Users/nicolasvela/Documents/clientes/capmationmeetapp/app/plugins/firebase.client.ts /Users/nicolasvela/Documents/clientes/capmationmeetapp/app/plugins/01.firebase.client.ts)",
+      "Bash(mv /Users/nicolasvela/Documents/clientes/capmationmeetapp/app/plugins/auth.client.ts /Users/nicolasvela/Documents/clientes/capmationmeetapp/app/plugins/02.auth.client.ts)",
+      "Bash(npm show pinia version)",
+      "Bash(npm show @pinia/nuxt version)",
+      "Bash(npm install pinia@latest @pinia/nuxt@latest)"
+    ]
+  }
+}

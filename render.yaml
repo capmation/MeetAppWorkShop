@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: capmationmeetapp
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node .output/server/index.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NUXT_PUBLIC_SOCKET_URL
+        sync: false   # Set in Render dashboard: https://capmationmeetapp.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false   # Set in Render dashboard: https://capmationmeetapp.onrender.com
+      - key: NUXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NUXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: NUXT_PUBLIC_FIREBASE_APP_ID
+        sync: false
+      - key: FIREBASE_ADMIN_PROJECT_ID
+        sync: false
+      - key: FIREBASE_ADMIN_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_ADMIN_PRIVATE_KEY
+        sync: false
