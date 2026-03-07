@@ -7,6 +7,11 @@ import { getAdminAuth } from '../utils/firebase-admin'
 let ioInstance: Server<ClientToServerEvents, ServerToClientEvents> | null = null
 
 function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEvents>) {
+  if (!io.engine) {
+    console.error('[socket.io] engine unavailable; skipping handler setup')
+    return
+  }
+
   io.engine.on('connection_error', (err) => {
     console.warn('[socket.io] connection error', err.message)
   })
@@ -107,7 +112,8 @@ export default defineNitroPlugin((nitroApp) => {
     pingTimeout: 5_000,
   })
   ioInstance = io
-  setupSocketHandlers(io)
+
+  let handlersRegistered = false
 
   // Nitro 2.13 / Nuxt 4: attach socket.io once the HTTP server is listening
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,6 +124,11 @@ export default defineNitroPlugin((nitroApp) => {
       io.attach(nodeServer)
       if (!io.engine) {
         console.error('[socket.io] engine still undefined after attach')
+        return
+      }
+      if (!handlersRegistered) {
+        setupSocketHandlers(io)
+        handlersRegistered = true
       }
     }
     else {
