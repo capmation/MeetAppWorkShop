@@ -31,6 +31,11 @@ export default defineNuxtConfig({
       // In dev: same as Nuxt URL (Vite proxy routes /socket.io → port 4001)
       // In prod: set to your deployed app URL
       socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:4001',
+      // TURN server for WebRTC (required in production behind NAT)
+      // Free tier at https://www.metered.ca/ — set these 3 vars in Render
+      turnHost: process.env.NUXT_PUBLIC_TURN_HOST || '',
+      turnUsername: process.env.NUXT_PUBLIC_TURN_USERNAME || '',
+      turnCredential: process.env.NUXT_PUBLIC_TURN_CREDENTIAL || '',
     },
   },
 
