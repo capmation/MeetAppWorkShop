@@ -69,7 +69,6 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
         text: sanitizedText,
         timestamp: Date.now(),
       }
-
       io.to(roomId).emit('chat:message', message)
     })
 
@@ -108,6 +107,10 @@ export default defineNitroPlugin((nitroApp) => {
     pingTimeout: 5_000,
   })
   ioInstance = io
+  if (!io?.engine?.on) {
+    console.error('[socket.io] engine missing; skipping socket setup')
+    return
+  }
   setupSocketHandlers(io)
 
   // Nitro 2.13 / Nuxt 4: attach socket.io once the HTTP server is listening
