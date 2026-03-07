@@ -1,13 +1,38 @@
 import type { RoomUser } from '~/types/socket.types'
 import { useSocket } from '~/composables/useSocket'
 
-// Free STUN servers (no cost, no account needed)
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun3.l.google.com:19302' },
-]
+function buildIceServers(): RTCIceServer[] {
+  const config = useRuntimeConfig()
+  const servers: RTCIceServer[] = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ]
+
+  // TURN server via env vars (required for production behind NAT)
+  // Free tier at https://www.metered.ca/ (50 GB/month, no credit card)
+  // Set in Render: NUXT_PUBLIC_TURN_HOST, NUXT_PUBLIC_TURN_USERNAME, NUXT_PUBLIC_TURN_CREDENTIAL
+  const turnHost = (config.public as any).turnHost as string | undefined
+  const turnUsername = (config.public as any).turnUsername as string | undefined
+  const turnCredential = (config.public as any).turnCredential as string | undefined
+
+  if (turnHost && turnUsername && turnCredential) {
+    // Metered.ca STUN
+    servers.push({ urls: `stun:stun.relay.metered.ca:80` })
+    // All 4 TURN configurations for maximum NAT traversal
+    servers.push({
+      urls: [
+        `turn:${turnHost}:80`,
+        `turn:${turnHost}:80?transport=tcp`,
+        `turn:${turnHost}:443`,
+        `turns:${turnHost}:443?transport=tcp`,
+      ],
+      username: turnUsername,
+      credential: turnCredential,
+    })
+  }
+
+  return servers
+}
 
 export interface RemotePeer {
   socketId: string
@@ -22,8 +47,11 @@ export const useWebRTC = () => {
   const peers = ref<Map<string, RemotePeer>>(new Map())
   const { getSocket } = useSocket()
 
+  // Buffer ICE candidates received before setRemoteDescription is called
+  const pendingCandidates = new Map<string, RTCIceCandidateInit[]>()
+
   function createPeerConnection(socketId: string): RTCPeerConnection {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+    const pc = new RTCPeerConnection({ iceServers: buildIceServers() })
 
     pc.onicecandidate = ({ candidate }) => {
       if (candidate) {
@@ -45,6 +73,17 @@ export const useWebRTC = () => {
     }
 
     return pc
+  }
+
+  async function flushPendingCandidates(socketId: string, pc: RTCPeerConnection) {
+    const pending = pendingCandidates.get(socketId) ?? []
+    pendingCandidates.delete(socketId)
+    for (const candidate of pending) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate))
+      }
+      catch { /* non-fatal */ }
+    }
   }
 
   // Called when WE initiate the call to a new peer
@@ -88,6 +127,9 @@ export const useWebRTC = () => {
     })
 
     await pc.setRemoteDescription(new RTCSessionDescription(offer))
+    // Flush any ICE candidates that arrived before setRemoteDescription
+    await flushPendingCandidates(from, pc)
+
     const answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
     getSocket().emit('webrtc:answer', { to: from, answer })
@@ -97,17 +139,25 @@ export const useWebRTC = () => {
     const peer = peers.value.get(from)
     if (!peer) return
     await peer.connection.setRemoteDescription(new RTCSessionDescription(answer))
+    // Flush any ICE candidates that arrived before setRemoteDescription
+    await flushPendingCandidates(from, peer.connection)
   }
 
   async function handleIceCandidate(from: string, candidate: RTCIceCandidateInit): Promise<void> {
     const peer = peers.value.get(from)
-    if (!peer) return
+
+    // Buffer the candidate if the peer connection isn't ready yet
+    if (!peer || !peer.connection.remoteDescription) {
+      const pending = pendingCandidates.get(from) ?? []
+      pending.push(candidate)
+      pendingCandidates.set(from, pending)
+      return
+    }
+
     try {
       await peer.connection.addIceCandidate(new RTCIceCandidate(candidate))
     }
-    catch {
-      // ICE candidate errors are non-fatal
-    }
+    catch { /* non-fatal */ }
   }
 
   function closePeer(socketId: string): void {
@@ -115,11 +165,13 @@ export const useWebRTC = () => {
     if (!peer) return
     peer.connection.close()
     peers.value.delete(socketId)
+    pendingCandidates.delete(socketId)
   }
 
   function closeAllPeers(): void {
     peers.value.forEach(peer => peer.connection.close())
     peers.value.clear()
+    pendingCandidates.clear()
   }
 
   function listenToSignaling(localStream: MediaStream, roomUsers: Ref<RoomUser[]>): void {
