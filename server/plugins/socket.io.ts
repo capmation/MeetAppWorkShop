@@ -5,6 +5,8 @@ import { getAdminAuth } from '../utils/firebase-admin'
 
 // Prevent double registration on hot reloads
 let ioInstance: Server<ClientToServerEvents, ServerToClientEvents> | null = null
+let ioAttached = false
+let handlersRegistered = false
 
 function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEvents>) {
   if (!io.engine) {
@@ -113,26 +115,46 @@ export default defineNitroPlugin((nitroApp) => {
   })
   ioInstance = io
 
-  let handlersRegistered = false
+  function attachToServer(nodeServer: any, source: string) {
+    if (!nodeServer?.on) {
+      console.error('[socket.io]', source, 'no node server with .on')
+      return
+    }
+    if (ioAttached) {
+      console.info('[socket.io] already attached (', source, ')')
+    }
+    else {
+      console.info('[socket.io] attaching to server via', source)
+      io.attach(nodeServer)
+      ioAttached = true
+    }
+
+    if (!io.engine) {
+      console.error('[socket.io]', source, 'engine undefined after attach')
+      return
+    }
+    if (!handlersRegistered) {
+      setupSocketHandlers(io)
+      handlersRegistered = true
+      console.info('[socket.io] handlers registered via', source)
+    }
+  }
 
   // Nitro 2.13 / Nuxt 4: attach socket.io once the HTTP server is listening
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(nitroApp as any).hooks.hook('listen', (listenOptions: any) => {
     const nodeServer = listenOptions?.server ?? listenOptions
-    if (nodeServer?.on) {
-      console.info('[socket.io] attaching to nitro HTTP server')
-      io.attach(nodeServer)
-      if (!io.engine) {
-        console.error('[socket.io] engine still undefined after attach')
-        return
-      }
-      if (!handlersRegistered) {
-        setupSocketHandlers(io)
-        handlersRegistered = true
-      }
-    }
-    else {
-      console.error('[socket.io] listen hook: no node server with .on')
-    }
+    console.info('[socket.io] listen hook fired')
+    attachToServer(nodeServer, 'listen')
+  })
+
+  // Nitro sometimes fires afterListen instead of listen depending on adapter
+  ;(nitroApp as any).hooks.hook('afterListen', (server: any) => {
+    console.info('[socket.io] afterListen hook fired')
+    attachToServer(server?.server ?? server, 'afterListen')
+  })
+
+  nitroApp.hooks.hookOnce('ready', () => {
+    console.info('[socket.io] nitro ready hook')
   })
 })
