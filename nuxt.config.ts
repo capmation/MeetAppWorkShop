@@ -28,7 +28,9 @@ export default defineNuxtConfig({
       firebaseStorageBucket: process.env.NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       firebaseMessagingSenderId: process.env.NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId: process.env.NUXT_PUBLIC_FIREBASE_APP_ID,
-      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:3000',
+      // In dev: same as Nuxt URL (Vite proxy routes /socket.io → port 4001)
+      // In prod: set to your deployed app URL
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || 'http://localhost:4001',
     },
   },
 
@@ -48,14 +50,12 @@ export default defineNuxtConfig({
     },
   },
 
-  // Ensure socket.io server-side only packages don't break client build
   vite: {
     optimizeDeps: {
       exclude: ['firebase-admin'],
     },
   },
 
-  // App-level config
   app: {
     head: {
       title: 'Capmation MeetApp',
