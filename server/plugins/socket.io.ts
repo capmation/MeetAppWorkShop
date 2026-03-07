@@ -107,10 +107,6 @@ export default defineNitroPlugin((nitroApp) => {
     pingTimeout: 5_000,
   })
   ioInstance = io
-  if (!io?.engine?.on) {
-    console.error('[socket.io] engine missing; skipping socket setup')
-    return
-  }
   setupSocketHandlers(io)
 
   // Nitro 2.13 / Nuxt 4: attach socket.io once the HTTP server is listening
@@ -120,6 +116,12 @@ export default defineNitroPlugin((nitroApp) => {
     if (nodeServer?.on) {
       console.info('[socket.io] attaching to nitro HTTP server')
       io.attach(nodeServer)
+      if (!io.engine) {
+        console.error('[socket.io] engine still undefined after attach')
+      }
+    }
+    else {
+      console.error('[socket.io] listen hook: no node server with .on')
     }
   })
 })
