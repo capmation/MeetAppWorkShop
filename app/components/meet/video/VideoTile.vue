@@ -45,16 +45,14 @@ const props = defineProps<{
 
 const videoEl = ref<HTMLVideoElement | null>(null)
 
-// Bind stream to video element when it changes
-watch(() => props.stream, (stream) => {
-  if (videoEl.value && stream) {
+// Bind stream to video element when it changes.
+// nextTick is required because the <video> element only enters the DOM
+// after Vue processes the v-if="stream" update, which happens asynchronously.
+watch(() => props.stream, async (stream) => {
+  if (!stream) return
+  await nextTick()
+  if (videoEl.value) {
     videoEl.value.srcObject = stream
   }
 }, { immediate: true })
-
-onMounted(() => {
-  if (videoEl.value && props.stream) {
-    videoEl.value.srcObject = props.stream
-  }
-})
 </script>
