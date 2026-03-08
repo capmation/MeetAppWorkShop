@@ -20,13 +20,13 @@
         >
           <div
             v-if="modelValue"
-            class="relative bg-dark-800 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md animate-slide-up"
+            class="relative bg-brand-900/85 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md animate-slide-up backdrop-blur"
           >
             <!-- Header -->
             <div class="flex items-center justify-between p-5 border-b border-white/10">
               <h2 class="text-lg font-semibold text-white">{{ title }}</h2>
               <button
-                class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
+                class="text-neutral-300 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
                 @click="$emit('update:modelValue', false)"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

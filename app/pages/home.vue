@@ -1,12 +1,12 @@
 <template>
-  <div class="flex-1 px-4 md:px-8 py-8 max-w-4xl mx-auto w-full">
+  <div class="flex-1 px-4 md:px-8 py-10 max-w-4xl mx-auto w-full">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-10">
       <div>
-        <h1 class="text-2xl font-bold text-white">
+        <h1 class="text-3xl font-semibold text-white">
           Good {{ greeting }}, {{ firstName }}!
         </h1>
-        <p class="text-slate-400 text-sm mt-1">Ready for your next meeting?</p>
+        <p class="text-neutral-200/70 text-sm mt-2">Ready for your next meeting?</p>
       </div>
       <AppButton variant="primary" size="md" @click="showCreateModal = true">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,14 +17,14 @@
     </div>
 
     <!-- Quick join by link -->
-    <div class="bg-dark-800/60 border border-white/10 rounded-2xl p-5 mb-8">
-      <h2 class="text-sm font-semibold text-slate-300 mb-3">Join with a link</h2>
+    <div class="bg-brand-900/70 border border-white/10 rounded-2xl p-5 mb-8 shadow-lg shadow-black/20">
+      <h2 class="text-sm font-semibold text-neutral-100 mb-3">Join with a link</h2>
       <div class="flex gap-2">
         <input
           v-model="joinLink"
           type="text"
           placeholder="Paste meeting link or ID..."
-          class="flex-1 bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+          class="flex-1 bg-brand-800/80 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-neutral-300/70 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition"
           @keydown.enter="handleJoinByLink"
         />
         <AppButton variant="primary" :disabled="!joinLink.trim()" @click="handleJoinByLink">
@@ -36,7 +36,7 @@
 
     <!-- Recent meetings -->
     <div>
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Your meetings</h2>
+      <h2 class="text-sm font-semibold text-neutral-200 uppercase tracking-wider mb-4">Your meetings</h2>
 
       <div v-if="meetings.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <MeetingCard
@@ -47,14 +47,14 @@
       </div>
 
       <div v-else class="text-center py-16">
-        <div class="w-16 h-16 rounded-2xl bg-dark-800 border border-white/10 flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="w-16 h-16 rounded-2xl bg-brand-900 border border-white/10 flex items-center justify-center mx-auto mb-4 shadow-inner shadow-black/40">
+          <svg class="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
               d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
         </div>
-        <p class="text-slate-400 text-sm">No meetings yet.</p>
-        <p class="text-slate-500 text-xs mt-1">Create one to get started!</p>
+        <p class="text-neutral-200/80 text-sm">No meetings yet.</p>
+        <p class="text-neutral-300/70 text-xs mt-1">Create one to get started!</p>
       </div>
     </div>
 

@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cap-blue: #0a2342;
+  --cap-blue-deep: #050b16;
+  --cap-blue-soft: #0f2746;
+  --cap-green: #9fbf1a;
+  --cap-gray: #e3e3e3;
+  --cap-ink: #f8fafc;
+}
+
+body {
+  background: radial-gradient(circle at 20% 20%, rgba(159, 191, 26, 0.08), transparent 22%),
+    radial-gradient(circle at 80% 10%, rgba(62, 106, 164, 0.12), transparent 25%),
+    linear-gradient(145deg, var(--cap-blue-deep), #071228 35%, #050b16 80%);
+  color: var(--cap-ink);
+  font-family: 'Sora', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+::selection {
+  background-color: rgba(159, 191, 26, 0.35);
+  color: #0a2342;
+}
+
+.page-surface {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  backdrop-filter: blur(12px);
+}
+
+.card-surface {
+  background: rgba(4, 15, 31, 0.7);
+  border: 1px solid rgba(227, 227, 227, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}

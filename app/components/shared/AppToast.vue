@@ -13,7 +13,7 @@
           v-for="toast in toasts"
           :key="toast.id"
           :class="[
-            'pointer-events-auto px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium min-w-[220px] max-w-sm',
+            'pointer-events-auto px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium min-w-[220px] max-w-sm border border-white/5',
             typeClasses[toast.type],
           ]"
         >
@@ -40,9 +40,9 @@ interface Toast {
 const toasts = ref<Toast[]>([])
 
 const typeClasses = {
-  success: 'bg-green-600 text-white',
-  error: 'bg-red-600 text-white',
-  info: 'bg-dark-700 text-white border border-white/10',
+  success: 'bg-accent-500 text-brand-900 shadow-accent-500/30',
+  error: 'bg-red-600 text-white shadow-red-600/30',
+  info: 'bg-brand-800 text-white',
 }
 
 function show(message: string, type: Toast['type'] = 'info', duration = 3000) {

@@ -11,7 +11,7 @@
         placeholder="e.g. Weekly Sync"
         maxlength="80"
         autocomplete="off"
-        class="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+        class="w-full bg-brand-900/70 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-neutral-300/70 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition"
       />
       <p v-if="error" class="mt-2 text-red-400 text-xs">{{ error }}</p>
 

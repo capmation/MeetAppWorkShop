@@ -15,6 +15,8 @@ export default defineNuxtConfig({
     { path: '~/components', pathPrefix: false },
   ],
 
+  css: ['~/assets/css/main.css'],
+
   runtimeConfig: {
     // Server-only (private)
     firebaseAdminProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID,

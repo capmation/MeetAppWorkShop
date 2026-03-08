@@ -3,7 +3,7 @@
     :type="type"
     :disabled="disabled || loading"
     :class="[
-      'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-800 disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-900 disabled:opacity-50 disabled:cursor-not-allowed',
       sizeClasses,
       variantClasses,
     ]"
@@ -37,9 +37,9 @@ const sizeClasses: Record<Size, string> = {
 }
 
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-brand-600 hover:bg-brand-500 text-white shadow-sm shadow-brand-600/30 active:bg-brand-700',
-  secondary: 'bg-white/10 hover:bg-white/15 text-white border border-white/10',
+  primary: 'bg-accent-500 hover:bg-accent-400 text-brand-900 shadow-sm shadow-accent-500/30 active:bg-accent-600',
+  secondary: 'bg-brand-800/60 hover:bg-brand-700 text-white border border-white/15',
   danger: 'bg-red-600 hover:bg-red-500 text-white shadow-sm shadow-red-600/30',
-  ghost: 'text-slate-300 hover:text-white hover:bg-white/5',
+  ghost: 'text-neutral-200 hover:text-white hover:bg-white/5',
 }
 </script>
