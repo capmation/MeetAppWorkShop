@@ -3,9 +3,12 @@ export interface Meeting {
   title: string
   hostUid: string
   hostName: string
-  createdAt: Date | null
+  hostEmail?: string
+  createdAt: string | null
+  visibility: 'private' | 'public'
 }
 
 export interface CreateMeetingPayload {
   title: string
+  visibility?: 'private' | 'public'
 }

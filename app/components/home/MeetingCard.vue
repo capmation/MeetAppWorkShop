@@ -4,6 +4,11 @@
       <div class="min-w-0">
         <h3 class="font-semibold text-white truncate text-base">{{ meeting.title }}</h3>
         <p class="text-slate-400 text-xs mt-1">Hosted by {{ meeting.hostName }}</p>
+        <p class="inline-flex items-center gap-1.5 text-[11px] mt-2 px-2 py-1 rounded-lg border border-white/10"
+          :class="meeting.visibility === 'public' ? 'text-green-300/90 bg-green-900/30 border-green-500/30' : 'text-slate-300 bg-slate-800/60'">
+          <span class="w-2 h-2 rounded-full" :class="meeting.visibility === 'public' ? 'bg-green-400' : 'bg-slate-400'" />
+          {{ meeting.visibility === 'public' ? 'Public' : 'Private' }}
+        </p>
         <p v-if="meeting.createdAt" class="text-slate-500 text-xs mt-0.5">
           {{ formatRelativeTime(new Date(meeting.createdAt)) }}
         </p>
@@ -17,11 +22,14 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-2 mt-4">
-      <AppButton size="sm" variant="primary" class="flex-1" @click="joinMeeting">
-        Join
+    <div class="flex flex-wrap items-center gap-2.5 mt-4">
+      <AppButton size="sm" variant="cta" class="px-3 min-w-[112px]" @click="joinMeeting">
+        Join now
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
       </AppButton>
-      <AppButton size="sm" variant="secondary" :class="copied ? 'text-green-400' : ''" @click="copyLink">
+      <AppButton size="sm" variant="secondary" class="px-3" :class="copied ? 'text-green-400' : ''" @click="copyLink">
         <svg v-if="!copied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -31,6 +39,16 @@
         </svg>
         {{ copied ? 'Copied!' : 'Copy link' }}
       </AppButton>
+      <AppButton
+        v-if="showDelete"
+        size="sm"
+        variant="danger"
+        class="shrink-0 px-3"
+        :loading="deleting"
+        @click="requestDelete"
+      >
+        Delete
+      </AppButton>
     </div>
   </div>
 </template>
@@ -39,7 +57,11 @@
 import type { Meeting } from '~/types/meeting.types'
 import { formatRelativeTime } from '~/utils/format-date'
 
-const props = defineProps<{ meeting: Meeting }>()
+const props = withDefaults(defineProps<{ meeting: Meeting; showDelete?: boolean; deleting?: boolean }>(), {
+  showDelete: false,
+  deleting: false,
+})
+const emit = defineEmits<{ (e: 'delete', id: string): void }>()
 const { copy, copied } = useClipboard()
 const { getMeetingLink } = useMeeting()
 const router = useRouter()
@@ -51,5 +73,9 @@ function joinMeeting() {
 async function copyLink() {
   const link = getMeetingLink(props.meeting.id)
   await copy(link)
+}
+
+function requestDelete() {
+  emit('delete', props.meeting.id)
 }
 </script>

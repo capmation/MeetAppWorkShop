@@ -15,6 +15,8 @@ export default defineNuxtConfig({
     { path: '~/components', pathPrefix: false },
   ],
 
+  css: ['~/assets/css/main.css'],
+
   runtimeConfig: {
     // Server-only (private)
     firebaseAdminProjectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
@@ -68,6 +70,9 @@ export default defineNuxtConfig({
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: 'Real-time video meetings and chat' },
+      ],
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
       ],
     },
   },

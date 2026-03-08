@@ -13,7 +13,8 @@ describe('useMeetingStore', () => {
     title: 'Weekly Sync',
     hostUid: 'uid1',
     hostName: 'Alice',
-    createdAt: new Date(),
+    createdAt: new Date().toISOString(),
+    visibility: 'private',
   }
 
   it('starts empty', () => {
@@ -37,6 +38,15 @@ describe('useMeetingStore', () => {
     store.addMeeting(newer)
     expect(store.meetings[0].id).toBe('xyz')
     expect(store.meetings).toHaveLength(2)
+  })
+
+  it('removes a meeting', () => {
+    const store = useMeetingStore()
+    const newer: Meeting = { ...mockMeeting, id: 'xyz', title: 'New One' }
+    store.setMeetings([mockMeeting, newer])
+    store.removeMeeting('abc123')
+    expect(store.meetings).toHaveLength(1)
+    expect(store.meetings[0].id).toBe('xyz')
   })
 
   it('sets current meeting', () => {
