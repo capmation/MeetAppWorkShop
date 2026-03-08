@@ -10,13 +10,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Title must be between 2 and 80 characters' })
   }
 
+  const visibilityRaw = (body?.visibility as string | undefined)?.toLowerCase()
+  const visibility = visibilityRaw === 'public' ? 'public' : 'private'
+
   const id = nanoid(10)
   const meeting = {
     id,
     title,
     hostUid: user.uid,
     hostName: user.name || user.email,
+    hostEmail: user.email || '',
     createdAt: new Date().toISOString(),
+    visibility,
   }
 
   await (await getAdminDb()).collection('meetings').doc(id).set(meeting)

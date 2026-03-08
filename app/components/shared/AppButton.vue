@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'cta'
 type Size = 'sm' | 'md' | 'lg'
 
 const props = withDefaults(defineProps<{
@@ -41,5 +41,6 @@ const variantClasses: Record<Variant, string> = {
   secondary: 'bg-brand-800/60 hover:bg-brand-700 text-white border border-white/15',
   danger: 'bg-red-600 hover:bg-red-500 text-white shadow-sm shadow-red-600/30',
   ghost: 'text-neutral-200 hover:text-white hover:bg-white/5',
+  cta: 'bg-gradient-to-r from-accent-400 via-accent-500 to-accent-600 text-brand-900 shadow-lg shadow-accent-500/40 hover:shadow-accent-400/50 hover:-translate-y-0.5 active:translate-y-0 border border-white/10',
 }
 </script>

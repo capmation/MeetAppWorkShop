@@ -27,8 +27,11 @@
           class="flex-1 bg-brand-800/80 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-neutral-300/70 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition"
           @keydown.enter="handleJoinByLink"
         />
-        <AppButton variant="primary" :disabled="!joinLink.trim()" @click="handleJoinByLink">
-          Join
+        <AppButton variant="cta" class="px-6" :disabled="!joinLink.trim()" @click="handleJoinByLink">
+          Join now
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
         </AppButton>
       </div>
       <p v-if="joinError" class="mt-2 text-red-400 text-xs">{{ joinError }}</p>
@@ -38,15 +41,23 @@
     <div>
       <h2 class="text-sm font-semibold text-neutral-200 uppercase tracking-wider mb-4">Your meetings</h2>
 
+      <div v-if="meetingsLoading" class="flex items-center gap-2 text-neutral-300 text-sm mb-4">
+        <AppLoader size="sm" />
+        <span>Loading your meetings...</span>
+      </div>
+
       <div v-if="meetings.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <MeetingCard
           v-for="meeting in meetings"
           :key="meeting.id"
           :meeting="meeting"
+          show-delete
+          :deleting="deletingId === meeting.id"
+          @delete="handleDeleteMeeting"
         />
       </div>
 
-      <div v-else class="text-center py-16">
+      <div v-else-if="hasFetchedMeetings" class="text-center py-16">
         <div class="w-16 h-16 rounded-2xl bg-brand-900 border border-white/10 flex items-center justify-center mx-auto mb-4 shadow-inner shadow-black/40">
           <svg class="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -72,14 +83,17 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
-const { user } = useAuth()
-const { meetings } = useMeeting()
+const { user, loading: authLoading } = useAuth()
+const { meetings, fetchMeetings, deleteMeeting, loading: meetingsLoading } = useMeeting()
 const router = useRouter()
 
 const showCreateModal = ref(false)
 const joinLink = ref('')
 const joinError = ref('')
 const toast = ref<{ show: (msg: string, type?: string) => void } | null>(null)
+const hasFetchedMeetings = ref(false)
+const lastFetchedUid = ref<string | null>(null)
+const deletingId = ref<string | null>(null)
 
 const firstName = computed(() => user.value?.displayName.split(' ')[0] ?? 'there')
 const greeting = computed(() => {
@@ -93,6 +107,50 @@ function handleMeetingCreated(meetingId: string) {
   toast.value?.show('Meeting created!', 'success')
   router.push(`/meet/${meetingId}`)
 }
+
+async function loadMeetings() {
+  if (!user.value) return
+  try {
+    await fetchMeetings()
+    lastFetchedUid.value = user.value.uid
+  }
+  catch (err) {
+    const message = (err as Error).message || 'Unable to load meetings'
+    toast.value?.show(message, 'error')
+  }
+  finally {
+    hasFetchedMeetings.value = true
+  }
+}
+
+async function handleDeleteMeeting(id: string) {
+  if (deletingId.value) return
+  const confirmed = window.confirm('Delete this meeting? This cannot be undone.')
+  if (!confirmed) return
+
+  deletingId.value = id
+  try {
+    await deleteMeeting(id)
+    toast.value?.show('Meeting deleted', 'success')
+  }
+  catch (err) {
+    const message = (err as Error).message || 'Failed to delete meeting'
+    toast.value?.show(message, 'error')
+  }
+  finally {
+    deletingId.value = null
+  }
+}
+
+watch(
+  () => [authLoading.value, user.value?.uid],
+  ([loading, uid]) => {
+    if (!loading && uid && uid !== lastFetchedUid.value) {
+      loadMeetings()
+    }
+  },
+  { immediate: true },
+)
 
 function handleJoinByLink() {
   joinError.value = ''

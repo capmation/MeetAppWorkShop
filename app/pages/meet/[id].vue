@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick } from 'vue'
 import type { RoomUser } from '~/types/socket.types'
 
 definePageMeta({ layout: false, middleware: 'auth' })
@@ -107,7 +108,7 @@ definePageMeta({ layout: false, middleware: 'auth' })
 const route = useRoute()
 const roomId = route.params.id as string
 
-const { user, idToken } = useAuth()
+const { user, idToken, loading: authLoading } = useAuth()
 const { fetchMeeting } = useMeeting()
 const { getSocket, connect, disconnect } = useSocket()
 const { startMedia, toggleCamera, toggleMic, stopMedia, localStream, isCameraOn, isMicOn, permissionError } = useMedia()
@@ -143,9 +144,17 @@ function cleanup() {
   disconnect()
 }
 
+async function waitForAuthReady() {
+  // Wait for Firebase auth to resolve after reload/deep-link
+  while (authLoading.value) {
+    await nextTick()
+  }
+}
+
 onMounted(async () => {
+  await waitForAuthReady()
   // 1. Verify meeting exists
-  const meetingData = await fetchMeeting(roomId)
+  const meetingData = await fetchMeeting(roomId, idToken.value)
   if (!meetingData) {
     errorMessage.value = 'Meeting not found or you do not have access.'
     pageState.value = 'error'

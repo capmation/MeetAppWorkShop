@@ -5,6 +5,8 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // Allow public routes
   if (to.path === '/') return
+  // Allow direct meeting links (visibility enforced server-side)
+  if (to.path.startsWith('/meet/')) return
 
   if (!authStore.isAuthenticated && !authStore.loading) {
     return navigateTo('/')

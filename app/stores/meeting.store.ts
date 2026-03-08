@@ -11,6 +11,7 @@ export const useMeetingStore = defineStore('meeting', {
   actions: {
     setMeetings(list: Meeting[]) { this.meetings = list },
     addMeeting(meeting: Meeting) { this.meetings.unshift(meeting) },
+    removeMeeting(id: string) { this.meetings = this.meetings.filter(meeting => meeting.id !== id) },
     setCurrentMeeting(meeting: Meeting | null) { this.currentMeeting = meeting },
     setLoading(val: boolean) { this.loading = val },
     setError(msg: string | null) { this.error = msg },
