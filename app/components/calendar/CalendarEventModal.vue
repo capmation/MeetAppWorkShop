@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <Transition name="modal-fade">
+    <Transition name="modal">
       <div
         class="fixed inset-0 z-[200] flex items-center justify-center px-4"
         @click.self="$emit('close')"
@@ -8,8 +8,9 @@
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')" />
 
-        <!-- Panel -->
-        <div class="relative w-full max-w-md bg-brand-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+        <!-- Panel with spring animation -->
+        <Transition name="modal-panel" appear>
+          <div class="relative w-full max-w-md bg-brand-900 border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
             <h2 class="text-white font-semibold text-base">
@@ -158,7 +159,8 @@
               </button>
             </div>
           </form>
-        </div>
+          </div>
+        </Transition>
       </div>
     </Transition>
   </Teleport>
@@ -274,18 +276,6 @@ function joinMeeting() {
 </script>
 
 <style scoped>
-.modal-fade-enter-active { animation: modalIn 0.25s cubic-bezier(0.34, 1.4, 0.64, 1); }
-.modal-fade-leave-active { animation: modalOut 0.18s ease-in; }
-
-@keyframes modalIn {
-  from { opacity: 0; transform: scale(0.95) translateY(8px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0); }
-}
-@keyframes modalOut {
-  from { opacity: 1; transform: scale(1)    translateY(0); }
-  to   { opacity: 0; transform: scale(0.95) translateY(8px); }
-}
-
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(0.6);

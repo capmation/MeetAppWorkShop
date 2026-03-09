@@ -48,16 +48,22 @@
         <span>Loading your meetings...</span>
       </div>
 
-      <div v-if="meetings.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <TransitionGroup
+        v-if="meetings.length"
+        tag="div"
+        name="card"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 relative"
+      >
         <MeetingCard
-          v-for="meeting in meetings"
+          v-for="(meeting, i) in meetings"
           :key="meeting.id"
           :meeting="meeting"
+          :style="{ '--i': i }"
           show-delete
           :deleting="deletingId === meeting.id"
           @delete="handleDeleteMeeting"
         />
-      </div>
+      </TransitionGroup>
 
       <div v-else-if="hasFetchedMeetings" class="text-center py-16">
         <div class="w-16 h-16 rounded-2xl bg-brand-900 border border-white/10 flex items-center justify-center mx-auto mb-4 shadow-inner shadow-black/40">

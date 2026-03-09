@@ -51,14 +51,18 @@
     </div>
 
     <div ref="messagesEl" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-      <p v-if="!messages.length" class="text-center text-slate-500 text-xs mt-6">
-        {{ connected ? 'No messages yet. Say hi!' : 'Connect to chat.' }}
-      </p>
-      <ChatMessage
-        v-for="msg in messages"
-        :key="msg.id"
-        :message="msg"
-      />
+      <Transition name="msg" appear>
+        <p v-if="!messages.length" class="text-center text-slate-500 text-xs mt-6">
+          {{ connected ? 'No messages yet. Say hi!' : 'Connect to chat.' }}
+        </p>
+      </Transition>
+      <TransitionGroup name="msg" tag="div" class="flex flex-col gap-3">
+        <ChatMessage
+          v-for="msg in messages"
+          :key="msg.id"
+          :message="msg"
+        />
+      </TransitionGroup>
     </div>
 
     <ChatInput :disabled="!connected || !targetUser" @send="$emit('send', $event)" />

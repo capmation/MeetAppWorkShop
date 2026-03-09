@@ -55,13 +55,19 @@
         {{ fetchError }}
       </div>
 
-      <!-- Calendar grid -->
-      <CalendarWeekView
-        :week-days="weekDays"
-        :events="events"
-        @event-click="openEdit"
-        @slot-click="openCreate"
-      />
+      <!-- Calendar grid — relative wrapper lets the absolute trick work correctly -->
+      <div class="flex-1 relative overflow-hidden">
+        <Transition :name="weekDirection" mode="out-in">
+          <CalendarWeekView
+            :key="weekStart.toISOString()"
+            :week-days="weekDays"
+            :events="events"
+            class="absolute inset-0"
+            @event-click="openEdit"
+            @slot-click="openCreate"
+          />
+        </Transition>
+      </div>
     </template>
 
     <!-- Modal -->
@@ -111,6 +117,7 @@ function startOfWeek(date: Date): Date {
 }
 
 const weekStart = ref(startOfWeek(new Date()))
+const weekDirection = ref<'week-next' | 'week-prev'>('week-next')
 
 const weekDays = computed<Date[]>(() => {
   return Array.from({ length: 7 }, (_, i) => {
@@ -130,19 +137,23 @@ const weekLabel = computed(() => {
 })
 
 function prevWeek() {
+  weekDirection.value = 'week-prev'
   const d = new Date(weekStart.value)
   d.setDate(d.getDate() - 7)
   weekStart.value = d
 }
 
 function nextWeek() {
+  weekDirection.value = 'week-next'
   const d = new Date(weekStart.value)
   d.setDate(d.getDate() + 7)
   weekStart.value = d
 }
 
 function goToday() {
-  weekStart.value = startOfWeek(new Date())
+  const today = startOfWeek(new Date())
+  weekDirection.value = today > weekStart.value ? 'week-next' : 'week-prev'
+  weekStart.value = today
 }
 
 // ── Fetch on week change ──────────────────────────────────────────────────
