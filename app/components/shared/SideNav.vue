@@ -13,9 +13,15 @@
       :title="item.label"
     >
       <div class="relative">
+        <!-- Meetings -->
         <svg v-if="item.key === 'meet'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
+        <!-- Calendar -->
+        <svg v-else-if="item.key === 'calendar'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <!-- Teams -->
         <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2a3 3 0 015.356-1.857M12 4a3 3 0 110 6 3 3 0 010-6zM6 9a3 3 0 110-6 3 3 0 010 6zM18 9a3 3 0 110-6 3 3 0 010 6z" />
         </svg>
@@ -41,6 +47,7 @@ const unreadTotal = computed(() => dmStore.unreadTotal)
 
 const items = [
   { key: 'meet', to: '/home', label: 'Meetings' },
-  { key: 'chat', to: '/teams', label: 'Teams view' },
+  { key: 'chat', to: '/teams', label: 'Teams' },
+  { key: 'calendar', to: '/calendar', label: 'Calendar' },
 ]
 </script>
