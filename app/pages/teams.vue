@@ -71,13 +71,15 @@ import UserList from '~/components/teams/UserList.vue'
 import TeamsChatPanel from '~/components/teams/TeamsChatPanel.vue'
 import type { ChatMessage } from '~/types/chat.types'
 import type { PresenceUser } from '~/types/socket.types'
+import { useDmStore } from '~/stores/dm.store'
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const router = useRouter()
 const { user, idToken, loading: authLoading, refreshToken } = useAuth()
 const { meetings, fetchMeetings } = useMeeting()
-const { connect, disconnect, getSocket, isConnected } = useSocket()
+const { connect, getSocket, isConnected } = useSocket()
+const dmStore = useDmStore()
 
 const selectedMeetingId = ref('')
 const presenceUsers = ref<PresenceUser[]>([])
@@ -92,6 +94,17 @@ const chatMessages = computed(() => {
   return dmMessages.value[focusedUserUid.value] ?? []
 })
 const currentStatus = ref<'online' | 'away'>('online')
+
+const handleConnect = () => {
+  connectionStatus.value = 'connected'
+  presenceUsers.value = []
+  focusedUserUid.value = null
+}
+
+const handleDisconnect = () => {
+  connectionStatus.value = 'disconnected'
+  // Keep last known users/messages so chat history stays visible
+}
 
 let idleTimer: ReturnType<typeof setTimeout> | null = null
 const IDLE_MS = 5 * 60 * 1000
@@ -172,14 +185,12 @@ function cleanupRoomListeners() {
   socket.off('presence:offline', handlePresenceOffline)
   socket.off('presence:status', handlePresenceOnline)
   socket.off('dm:message', handleDmMessage)
-  socket.off('connect')
-  socket.off('disconnect')
+  socket.off('connect', handleConnect)
+  socket.off('disconnect', handleDisconnect)
 }
 
 function leaveRoom() {
   cleanupRoomListeners()
-  dmMessages.value = {}
-  unreadCounts.value = {}
   connectionStatus.value = 'disconnected'
 }
 
@@ -209,16 +220,9 @@ async function ensurePresenceConnection() {
     })
   }
 
-  socket.on('connect', () => {
-    connectionStatus.value = 'connected'
-    presenceUsers.value = []
-    focusedUserUid.value = null
-  })
+  socket.on('connect', handleConnect)
 
-  socket.on('disconnect', () => {
-    connectionStatus.value = 'disconnected'
-    // Keep last known users/messages so chat history stays visible
-  })
+  socket.on('disconnect', handleDisconnect)
 
   await emitPresenceFn?.('online')
 }
@@ -231,11 +235,14 @@ function handleSendMessage(text: string) {
     text,
   })
   markActive()
+  dmStore.applyCounts(unreadCounts.value)
 }
 
 function selectUser(uid: string) {
   focusedUserUid.value = uid
   unreadCounts.value = { ...unreadCounts.value, [uid]: 0 }
+  dmStore.setActiveUser(uid)
+  dmStore.applyCounts(unreadCounts.value)
 }
 
 function handleJoinCall(meetingId?: string) {
@@ -246,6 +253,8 @@ function handleJoinCall(meetingId?: string) {
 
 onMounted(async () => {
   await waitForAuthReady()
+  unreadCounts.value = { ...dmStore.unreadByUser }
+  if (focusedUserUid.value) dmStore.setActiveUser(focusedUserUid.value)
   try {
     await fetchMeetings()
     if (!selectedMeetingId.value && meetings.value.length) {
@@ -263,7 +272,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   leaveRoom()
-  disconnect()
+  dmStore.setActiveUser(null)
   stopIdleWatcher()
 })
 
