@@ -1,11 +1,18 @@
 import { createServer, Server as NodeHttpServer } from 'node:http'
 import { defineNitroPlugin } from 'nitropack/runtime'
 import { Server } from 'socket.io'
-import type { ServerToClientEvents, ClientToServerEvents, RoomUser } from '../../app/types/socket.types'
+import type { ServerToClientEvents, ClientToServerEvents, RoomUser, PresenceUser } from '../../app/types/socket.types'
 import { joinRoom, leaveRoom, getRoomParticipants, getRoomSize, MAX_ROOM_SIZE } from '../utils/room'
 import { getAdminAuth } from '../utils/firebase-admin'
 
 let ioInstance: Server<ClientToServerEvents, ServerToClientEvents> | null = null
+
+type PresenceEntry = {
+  user: PresenceUser
+  sockets: Set<string>
+}
+
+const presence = new Map<string, PresenceEntry>()
 
 const corsOrigins: string[] = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
@@ -28,8 +35,69 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
     console.warn('[socket.io] connection error', err.message)
   })
 
+  function toPresenceUser(entry: PresenceEntry): PresenceUser {
+    return { ...entry.user, socketIds: Array.from(entry.sockets) }
+  }
+
+  function findPresenceBySocketId(socketId: string): { uid: string; entry: PresenceEntry } | null {
+    for (const [uid, entry] of presence.entries()) {
+      if (entry.sockets.has(socketId)) return { uid, entry }
+    }
+    return null
+  }
+
+  async function handlePresenceAnnounce(socketId: string, token: string, user: PresenceUser) {
+    try {
+      const decoded = await (await getAdminAuth()).verifyIdToken(token)
+      if (decoded.uid !== user.uid) return
+    }
+    catch {
+      return
+    }
+
+    const existing = presence.get(user.uid)
+    if (!existing) {
+      presence.set(user.uid, {
+        user: { ...user, status: user.status || 'online' },
+        sockets: new Set([socketId]),
+      })
+      io.emit('presence:online', toPresenceUser(presence.get(user.uid)!))
+    }
+    else {
+      existing.user = { ...user, status: user.status || existing.user.status || 'online' }
+      existing.sockets.add(socketId)
+      io.emit('presence:status', toPresenceUser(existing))
+    }
+
+    // Send full list to the newly announced socket
+    const allUsers = Array.from(presence.values()).map(toPresenceUser)
+    io.to(socketId).emit('presence:list', allUsers)
+  }
+
+  function handlePresenceDisconnect(socketId: string) {
+    const found = findPresenceBySocketId(socketId)
+    if (!found) return
+    const { uid, entry } = found
+    entry.sockets.delete(socketId)
+    if (entry.sockets.size === 0) {
+      entry.user = { ...entry.user, status: 'offline' }
+      presence.delete(uid)
+      io.emit('presence:offline', uid)
+    }
+  }
+
   io.on('connection', (socket) => {
     console.info('[socket.io] client connected', socket.id)
+
+    socket.on('presence:announce', ({ token, user, status }) => {
+      handlePresenceAnnounce(socket.id, token, {
+        uid: user.uid,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        status: status ?? 'online',
+        socketIds: [],
+      })
+    })
 
     socket.on('room:join', async ({ roomId, token, user }) => {
       try {
@@ -61,8 +129,11 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
       socket.emit('room:users', getRoomParticipants(roomId) as RoomUser[])
     })
 
-    socket.on('room:leave', () => handleDisconnect(socket.id))
-    socket.on('disconnect', () => handleDisconnect(socket.id))
+    socket.on('room:leave', () => handleRoomLeave(socket.id))
+    socket.on('disconnect', () => {
+      handleRoomLeave(socket.id)
+      handlePresenceDisconnect(socket.id)
+    })
 
     socket.on('chat:send', ({ roomId, text }) => {
       const sanitizedText = text.trim().slice(0, 2000)
@@ -83,6 +154,38 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
       })
     })
 
+    socket.on('dm:send', ({ toUid, text }) => {
+      const sanitizedText = text.trim().slice(0, 2000)
+      if (!sanitizedText) return
+
+      const senderPresence = findPresenceBySocketId(socket.id)
+      if (!senderPresence) return
+      const sender = senderPresence.entry.user
+
+      const recipientPresence = presence.get(toUid)
+      if (!recipientPresence) return
+
+      const payload = {
+        id: `${Date.now()}-${socket.id}-dm`,
+        roomId: 'dm',
+        userId: sender.uid,
+        userName: sender.displayName,
+        userPhoto: sender.photoURL,
+        text: sanitizedText,
+        timestamp: Date.now(),
+        toUserId: recipientPresence.user.uid,
+        toUserName: recipientPresence.user.displayName,
+      }
+
+      // Deliver to all sockets of recipient and sender
+      for (const sid of recipientPresence.sockets) {
+        io.to(sid).emit('dm:message', payload)
+      }
+      for (const sid of senderPresence.entry.sockets) {
+        io.to(sid).emit('dm:message', payload)
+      }
+    })
+
     socket.on('webrtc:offer', ({ to, offer }) => {
       socket.to(to).emit('webrtc:offer', { from: socket.id, offer })
     })
@@ -96,7 +199,7 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
     })
   })
 
-  function handleDisconnect(socketId: string) {
+  function handleRoomLeave(socketId: string) {
     const { roomId, participant } = leaveRoom(socketId)
     if (roomId && participant) {
       io.to(roomId).emit('user:left', socketId)

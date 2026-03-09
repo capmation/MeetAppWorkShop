@@ -30,13 +30,18 @@
       </div>
     </header>
 
-    <!-- Page content -->
-    <main class="flex-1 flex flex-col">
-      <slot />
+    <!-- Page content with shared sidebar -->
+    <main class="flex-1 flex">
+      <SideNav v-if="user" />
+      <section class="flex-1 flex flex-col">
+        <slot />
+      </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import SideNav from '~/components/shared/SideNav.vue'
+
 const { user, logout } = useAuth()
 </script>

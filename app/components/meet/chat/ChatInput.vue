@@ -6,12 +6,13 @@
       placeholder="Message..."
       maxlength="2000"
       autocomplete="off"
-      class="flex-1 bg-dark-700 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+      :disabled="disabled"
+      class="flex-1 bg-dark-700 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 transition disabled:opacity-60 disabled:cursor-not-allowed"
       @keydown.enter.exact.prevent="handleSend"
     />
     <button
       type="submit"
-      :disabled="!text.trim()"
+      :disabled="disabled || !text.trim()"
       class="w-9 h-9 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
     >
       <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,10 +23,12 @@
 </template>
 
 <script setup lang="ts">
+const props = defineProps<{ disabled?: boolean }>()
 const emit = defineEmits<{ send: [text: string] }>()
 const text = ref('')
 
 function handleSend() {
+  if (props.disabled) return
   const trimmed = text.value.trim()
   if (!trimmed) return
   emit('send', trimmed)

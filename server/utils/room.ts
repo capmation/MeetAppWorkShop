@@ -32,6 +32,15 @@ export function leaveRoom(socketId: string): { roomId: string | null; participan
   return { roomId: null, participant: null }
 }
 
+export function findParticipant(socketId: string): { roomId: string | null; participant: RoomParticipant | null } {
+  for (const [roomId, participants] of rooms.entries()) {
+    if (participants.has(socketId)) {
+      return { roomId, participant: participants.get(socketId)! }
+    }
+  }
+  return { roomId: null, participant: null }
+}
+
 export function getRoomParticipants(roomId: string): RoomParticipant[] {
   return Array.from(rooms.get(roomId)?.values() ?? [])
 }
