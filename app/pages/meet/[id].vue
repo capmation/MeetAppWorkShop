@@ -153,14 +153,19 @@ async function waitForAuthReady() {
 
 onMounted(async () => {
   await waitForAuthReady()
-  // 1. Verify meeting exists
-  const meetingData = await fetchMeeting(roomId, idToken.value)
-  if (!meetingData) {
-    errorMessage.value = 'Meeting not found or you do not have access.'
-    pageState.value = 'error'
-    return
+  // 1. Verify meeting exists (skip for ephemeral dm- rooms)
+  if (roomId.startsWith('dm-')) {
+    meeting.value = { title: 'Direct Call' }
   }
-  meeting.value = meetingData
+  else {
+    const meetingData = await fetchMeeting(roomId, idToken.value)
+    if (!meetingData) {
+      errorMessage.value = 'Meeting not found or you do not have access.'
+      pageState.value = 'error'
+      return
+    }
+    meeting.value = meetingData
+  }
 
   // 2. Get camera/mic
   let stream: MediaStream

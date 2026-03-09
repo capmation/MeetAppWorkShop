@@ -41,25 +41,6 @@
           />
         </div>
 
-        <div class="bg-brand-900/70 border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/20 flex flex-col gap-3">
-          <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold text-white">Meetings</p>
-            <span class="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10">{{ meetings.length }}</span>
-          </div>
-          <div class="flex flex-col gap-2">
-            <p v-if="!meetings.length" class="text-slate-500 text-sm py-4 text-center">No meetings loaded.</p>
-            <button
-              v-for="meeting in meetings"
-              :key="meeting.id"
-              type="button"
-              class="w-full text-left px-3 py-2 rounded-xl border bg-brand-800/50 border-white/5 hover:border-accent-400/40 transition"
-              @click="callMeetingId = meeting.id"
-            >
-              <p class="text-sm font-semibold text-white truncate">{{ meeting.title }}</p>
-              <p class="text-xs text-slate-400">{{ meeting.id }}</p>
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Chat view (slides in from right) -->
@@ -84,11 +65,13 @@
           class="flex-1 min-h-0"
           :messages="chatMessages"
           :connected="connectionStatus === 'connected'"
-          :room-id="callMeetingId"
+          :room-id="effectiveRoomId"
           :target-user="targetUser"
-          :call-enabled="callMeetingId !== null"
+          :call-enabled="!!targetUser"
+          :call-state="callState"
           @send="handleSendMessage"
           @call="handleJoinCall"
+          @cancel-call="cancelCall"
         />
       </div>
 
@@ -124,25 +107,6 @@
             />
           </div>
 
-          <div class="bg-brand-900/70 border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/20 flex-1 overflow-hidden flex flex-col gap-3">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-semibold text-white">Meetings</p>
-              <span class="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10">{{ meetings.length }}</span>
-            </div>
-            <div class="overflow-y-auto pr-1 flex flex-col gap-2">
-              <p v-if="!meetings.length" class="text-slate-500 text-sm py-4 text-center">No meetings loaded.</p>
-              <button
-                v-for="meeting in meetings"
-                :key="meeting.id"
-                type="button"
-                class="w-full text-left px-3 py-2 rounded-xl border bg-brand-800/50 border-white/5 hover:border-accent-400/40 transition"
-                @click="callMeetingId = meeting.id"
-              >
-                <p class="text-sm font-semibold text-white truncate">{{ meeting.title }}</p>
-                <p class="text-xs text-slate-400">{{ meeting.id }}</p>
-              </button>
-            </div>
-          </div>
         </div>
 
         <div class="flex flex-col min-h-0">
@@ -150,11 +114,13 @@
             class="flex-1"
             :messages="chatMessages"
             :connected="connectionStatus === 'connected'"
-            :room-id="callMeetingId"
+            :room-id="effectiveRoomId"
             :target-user="targetUser"
-            :call-enabled="callMeetingId !== null"
+            :call-enabled="!!targetUser"
+            :call-state="callState"
             @send="handleSendMessage"
             @call="handleJoinCall"
+            @cancel-call="cancelCall"
           />
         </div>
       </div>
@@ -175,17 +141,23 @@ definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const router = useRouter()
 const { user, idToken, loading: authLoading, refreshToken } = useAuth()
-const { meetings, fetchMeetings } = useMeeting()
 const { connect, getSocket, isConnected } = useSocket()
 const dmStore = useDmStore()
 
 const pageReady = ref(false)
 const mobileChatOpen = ref(false)
-const selectedMeetingId = ref('')
 const presenceUsers = ref<PresenceUser[]>([])
 const focusedUserUid = ref<string | null>(null)
 const connectionStatus = ref<'connecting' | 'connected' | 'disconnected'>('connecting')
 const callMeetingId = ref<string | null>(null)
+
+// Ephemeral room derived from both UIDs — no meeting required to call
+const effectiveRoomId = computed(() => {
+  if (callMeetingId.value) return callMeetingId.value
+  if (!user.value?.uid || !focusedUserUid.value) return null
+  const ids = [user.value.uid, focusedUserUid.value].sort()
+  return `dm-${ids[0]}-${ids[1]}`
+})
 const usersForList = computed(() => {
   const selfUid = user.value?.uid
   // Filter self out from presence list (race condition: self can arrive before user.value is set)
@@ -377,10 +349,67 @@ function selectUserMobile(uid: string) {
   mobileChatOpen.value = true
 }
 
+// ── Outgoing call state ──
+const callState = ref<'idle' | 'ringing' | 'unavailable'>('idle')
+let callTimeoutTimer: ReturnType<typeof setTimeout> | null = null
+
 function handleJoinCall(meetingId?: string) {
-  const target = meetingId ?? callMeetingId.value ?? selectedMeetingId.value
-  if (!target) return
-  router.push(`/meet/${target}`)
+  const target = meetingId ?? effectiveRoomId.value
+  if (!target || !targetUser.value || !isConnected()) return
+
+  const isOnline = targetUser.value.status === 'online' || targetUser.value.status === 'away'
+  if (!isOnline) {
+    callState.value = 'unavailable'
+    setTimeout(() => { callState.value = 'idle' }, 3500)
+    return
+  }
+
+  const socket = getSocket()
+  callState.value = 'ringing'
+
+  socket.emit('call:ring', {
+    toUid: targetUser.value.uid,
+    meetingId: target,
+    callerName: user.value?.displayName ?? 'Someone',
+    callerPhoto: user.value?.photoURL ?? null,
+  })
+
+  // Auto-cancel after 30s if no answer
+  callTimeoutTimer = setTimeout(() => cancelCall(), 30_000)
+
+  // Listen for responses
+  socket.once('call:answered', ({ meetingId: mid }) => {
+    clearCallTimeout()
+    callState.value = 'idle'
+    router.push(`/meet/${mid}`)
+  })
+
+  socket.once('call:declined', () => {
+    clearCallTimeout()
+    callState.value = 'idle'
+  })
+
+  socket.once('call:unavailable', () => {
+    clearCallTimeout()
+    callState.value = 'unavailable'
+    setTimeout(() => { callState.value = 'idle' }, 3500)
+  })
+}
+
+function cancelCall() {
+  if (!targetUser.value || !isConnected()) { callState.value = 'idle'; return }
+  getSocket().emit('call:cancel', { toUid: targetUser.value.uid })
+  // Remove once listeners
+  const socket = getSocket()
+  socket.off('call:answered')
+  socket.off('call:declined')
+  socket.off('call:unavailable')
+  clearCallTimeout()
+  callState.value = 'idle'
+}
+
+function clearCallTimeout() {
+  if (callTimeoutTimer) { clearTimeout(callTimeoutTimer); callTimeoutTimer = null }
 }
 
 onMounted(async () => {
@@ -388,20 +417,6 @@ onMounted(async () => {
   await preloadAllUsers()
   if (user.value?.uid) dmStore.hydrate(user.value.uid)
   if (focusedUserUid.value) dmStore.setActiveUser(focusedUserUid.value)
-  try {
-    await fetchMeetings()
-    if (!selectedMeetingId.value && meetings.value.length) {
-      const first = meetings.value.at(0)
-      if (first) {
-        selectedMeetingId.value = first.id
-        callMeetingId.value = first.id
-      }
-    }
-  }
-  catch {
-    // swallow fetch error in this view; home already handles display.
-  }
-
   await ensurePresenceConnection()
   startIdleWatcher()
   pageReady.value = true

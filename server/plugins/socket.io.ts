@@ -139,6 +139,54 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
       socket.emit('room:users', getRoomParticipants(roomId) as RoomUser[])
     })
 
+    socket.on('call:ring', ({ toUid, meetingId, callerName, callerPhoto }) => {
+      const caller = findPresenceBySocketId(socket.id)
+      if (!caller) return
+      const target = presence.get(toUid)
+      if (!target || target.sockets.size === 0) {
+        socket.emit('call:unavailable', { toUid })
+        return
+      }
+      for (const sid of target.sockets) {
+        io.to(sid).emit('call:incoming', {
+          fromUid: caller.uid,
+          fromName: callerName,
+          fromPhoto: callerPhoto,
+          meetingId,
+        })
+      }
+    })
+
+    socket.on('call:answer', ({ toUid, meetingId }) => {
+      const answerer = findPresenceBySocketId(socket.id)
+      if (!answerer) return
+      const target = presence.get(toUid)
+      if (!target) return
+      for (const sid of target.sockets) {
+        io.to(sid).emit('call:answered', { meetingId, byUid: answerer.uid })
+      }
+    })
+
+    socket.on('call:decline', ({ toUid }) => {
+      const decliner = findPresenceBySocketId(socket.id)
+      if (!decliner) return
+      const target = presence.get(toUid)
+      if (!target) return
+      for (const sid of target.sockets) {
+        io.to(sid).emit('call:declined', { byUid: decliner.uid, byName: decliner.entry.user.displayName })
+      }
+    })
+
+    socket.on('call:cancel', ({ toUid }) => {
+      const canceller = findPresenceBySocketId(socket.id)
+      if (!canceller) return
+      const target = presence.get(toUid)
+      if (!target) return
+      for (const sid of target.sockets) {
+        io.to(sid).emit('call:cancelled', { byUid: canceller.uid })
+      }
+    })
+
     socket.on('room:leave', () => handleRoomLeave(socket.id))
     socket.on('disconnect', () => {
       handleRoomLeave(socket.id)
