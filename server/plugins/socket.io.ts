@@ -2,6 +2,7 @@ import { createServer, Server as NodeHttpServer } from 'node:http'
 import { defineNitroPlugin } from 'nitropack/runtime'
 import { Server } from 'socket.io'
 import type { ServerToClientEvents, ClientToServerEvents, RoomUser, PresenceUser } from '../../app/types/socket.types'
+import type { ChatMessage } from '../../app/types/chat.types'
 import { joinRoom, leaveRoom, getRoomParticipants, getRoomSize, MAX_ROOM_SIZE } from '../utils/room'
 import { getAdminAuth } from '../utils/firebase-admin'
 
@@ -13,6 +14,7 @@ type PresenceEntry = {
 }
 
 const presence = new Map<string, PresenceEntry>()
+const offlineDmQueue = new Map<string, ChatMessage[]>()
 
 const corsOrigins: string[] = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
@@ -72,6 +74,14 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
     // Send full list to the newly announced socket
     const allUsers = Array.from(presence.values()).map(toPresenceUser)
     io.to(socketId).emit('presence:list', allUsers)
+
+    const queued = offlineDmQueue.get(user.uid)
+    if (queued?.length) {
+      for (const msg of queued) {
+        io.to(socketId).emit('dm:message', msg)
+      }
+      offlineDmQueue.delete(user.uid)
+    }
   }
 
   function handlePresenceDisconnect(socketId: string) {
@@ -163,9 +173,8 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
       const sender = senderPresence.entry.user
 
       const recipientPresence = presence.get(toUid)
-      if (!recipientPresence) return
 
-      const payload = {
+      const payload: ChatMessage = {
         id: `${Date.now()}-${socket.id}-dm`,
         roomId: 'dm',
         userId: sender.uid,
@@ -173,13 +182,19 @@ function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEven
         userPhoto: sender.photoURL,
         text: sanitizedText,
         timestamp: Date.now(),
-        toUserId: recipientPresence.user.uid,
-        toUserName: recipientPresence.user.displayName,
+        toUserId: toUid,
+        toUserName: recipientPresence?.user.displayName,
       }
 
-      // Deliver to all sockets of recipient and sender
-      for (const sid of recipientPresence.sockets) {
-        io.to(sid).emit('dm:message', payload)
+      // Deliver to recipient if online; otherwise queue for later
+      if (recipientPresence) {
+        for (const sid of recipientPresence.sockets) {
+          io.to(sid).emit('dm:message', payload)
+        }
+      }
+      else {
+        const queued = offlineDmQueue.get(toUid) ?? []
+        offlineDmQueue.set(toUid, [...queued, payload])
       }
       for (const sid of senderPresence.entry.sockets) {
         io.to(sid).emit('dm:message', payload)

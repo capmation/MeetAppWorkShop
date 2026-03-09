@@ -2,8 +2,8 @@
   <div class="bg-brand-900/70 border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/20 flex flex-col gap-3">
     <div class="flex items-center justify-between">
       <div>
-        <p class="text-sm font-semibold text-white">Usuarios conectados</p>
-        <p class="text-xs text-slate-400">Selecciona para enfocar el chat</p>
+        <p class="text-sm font-semibold text-white">Connected users</p>
+        <p class="text-xs text-slate-400">Select to focus the chat</p>
       </div>
       <span class="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10">{{ users.length }}</span>
     </div>
@@ -25,7 +25,7 @@
         <div class="min-w-0">
           <p class="text-sm font-semibold truncate">{{ user.displayName }}</p>
           <p class="text-xs" :class="user.status === 'away' ? 'text-amber-300' : user.status === 'offline' ? 'text-slate-500' : 'text-slate-400'">
-            {{ user.status === 'away' ? 'Ausente' : user.status === 'offline' ? 'Desconectado' : 'En línea' }}
+            {{ user.status === 'away' ? 'Away' : user.status === 'offline' ? 'Offline' : 'Online' }}
           </p>
         </div>
         <span
@@ -37,7 +37,7 @@
       </button>
     </div>
 
-    <p v-else class="text-slate-500 text-sm text-center py-6">Nadie conectado aún.</p>
+    <p v-else class="text-slate-500 text-sm text-center py-6">No users to show.</p>
   </div>
 </template>
 

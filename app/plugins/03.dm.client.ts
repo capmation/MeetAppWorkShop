@@ -40,6 +40,9 @@ export default defineNuxtPlugin(() => {
     if (loading.value) return
     if (!user.value) return
 
+    dmStore.hydrate(user.value.uid)
+    await preloadAllUsers()
+
     const socket = connect()
 
     socket.off('dm:message', handleDmMessage)
@@ -59,4 +62,20 @@ export default defineNuxtPlugin(() => {
   watch([() => user.value?.uid, () => loading.value], () => {
     ensureDmListener()
   })
+
+  async function preloadAllUsers() {
+    try {
+      const token = idToken.value ?? await refreshToken()
+      if (!token) return
+      const users = await $fetch<{ uid: string; displayName: string; photoURL: string | null }[]>('/api/users', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      users?.forEach((u) => {
+        dmStore.ensureKnownUser(u.uid, u.displayName ?? 'Unknown user', u.photoURL ?? null)
+      })
+    }
+    catch {
+      // ignore preload failure; live presence will still populate as users connect
+    }
+  }
 })
