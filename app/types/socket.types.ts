@@ -15,6 +15,13 @@ export interface PresenceUser {
   status: 'online' | 'away' | 'offline'
 }
 
+export interface CallPayload {
+  fromUid: string
+  fromName: string
+  fromPhoto: string | null
+  meetingId: string
+}
+
 export interface ServerToClientEvents {
   'room:users': (users: RoomUser[]) => void
   'user:joined': (user: RoomUser) => void
@@ -28,6 +35,11 @@ export interface ServerToClientEvents {
   'webrtc:offer': (data: { from: string; offer: RTCSessionDescriptionInit }) => void
   'webrtc:answer': (data: { from: string; answer: RTCSessionDescriptionInit }) => void
   'webrtc:ice-candidate': (data: { from: string; candidate: RTCIceCandidateInit }) => void
+  'call:incoming': (data: CallPayload) => void
+  'call:answered': (data: { meetingId: string; byUid: string }) => void
+  'call:declined': (data: { byUid: string; byName: string }) => void
+  'call:cancelled': (data: { byUid: string }) => void
+  'call:unavailable': (data: { toUid: string }) => void
 }
 
 export interface ClientToServerEvents {
@@ -39,4 +51,8 @@ export interface ClientToServerEvents {
   'webrtc:offer': (data: { to: string; offer: RTCSessionDescriptionInit }) => void
   'webrtc:answer': (data: { to: string; answer: RTCSessionDescriptionInit }) => void
   'webrtc:ice-candidate': (data: { to: string; candidate: RTCIceCandidateInit }) => void
+  'call:ring': (data: { toUid: string; meetingId: string; callerName: string; callerPhoto: string | null }) => void
+  'call:answer': (data: { toUid: string; meetingId: string }) => void
+  'call:decline': (data: { toUid: string }) => void
+  'call:cancel': (data: { toUid: string }) => void
 }

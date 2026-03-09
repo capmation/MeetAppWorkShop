@@ -98,6 +98,9 @@
       </div>
     </div>
 
+    <!-- Global incoming call toast -->
+    <IncomingCallToast v-if="user" />
+
     <!-- Page content with shared sidebar -->
     <main class="flex-1 flex">
       <SideNav v-if="user" />
