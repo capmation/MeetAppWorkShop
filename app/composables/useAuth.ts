@@ -1,5 +1,8 @@
 import {
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   signOut,
   onAuthStateChanged,
   type Auth,
@@ -27,6 +30,31 @@ export const useAuth = () => {
     }
 
     authStore.setUser(appUser)
+    authStore.setToken(token)
+  }
+
+  async function registerWithEmail(displayName: string, email: string, password: string): Promise<void> {
+    const result = await createUserWithEmailAndPassword(auth, email, password)
+    await updateProfile(result.user, { displayName })
+    const token = await result.user.getIdToken()
+    authStore.setUser({
+      uid: result.user.uid,
+      email: result.user.email ?? '',
+      displayName,
+      photoURL: result.user.photoURL,
+    })
+    authStore.setToken(token)
+  }
+
+  async function loginWithEmail(email: string, password: string): Promise<void> {
+    const result = await signInWithEmailAndPassword(auth, email, password)
+    const token = await result.user.getIdToken()
+    authStore.setUser({
+      uid: result.user.uid,
+      email: result.user.email ?? '',
+      displayName: result.user.displayName ?? 'Anonymous',
+      photoURL: result.user.photoURL,
+    })
     authStore.setToken(token)
   }
 
@@ -69,6 +97,8 @@ export const useAuth = () => {
     isAuthenticated: computed(() => authStore.isAuthenticated),
     loading: computed(() => authStore.loading),
     loginWithGoogle,
+    loginWithEmail,
+    registerWithEmail,
     logout,
     refreshToken,
     initAuthListener,
