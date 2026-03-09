@@ -55,16 +55,19 @@
         {{ fetchError }}
       </div>
 
-      <!-- Calendar grid (directional slide on week change) -->
-      <Transition :name="weekDirection" mode="out-in">
-        <CalendarWeekView
-          :key="weekStart.toISOString()"
-          :week-days="weekDays"
-          :events="events"
-          @event-click="openEdit"
-          @slot-click="openCreate"
-        />
-      </Transition>
+      <!-- Calendar grid — relative wrapper lets the absolute trick work correctly -->
+      <div class="flex-1 relative overflow-hidden">
+        <Transition :name="weekDirection" mode="out-in">
+          <CalendarWeekView
+            :key="weekStart.toISOString()"
+            :week-days="weekDays"
+            :events="events"
+            class="absolute inset-0"
+            @event-click="openEdit"
+            @slot-click="openCreate"
+          />
+        </Transition>
+      </div>
     </template>
 
     <!-- Modal -->
