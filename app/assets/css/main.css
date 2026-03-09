@@ -37,3 +37,106 @@ body {
   border: 1px solid rgba(227, 227, 227, 0.08);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
+
+/* ── Page transitions ─────────────────────────────────────────────────── */
+.page-enter-active {
+  animation: pageIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.page-leave-active {
+  animation: pageOut 0.18s ease-in;
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes pageOut {
+  from { opacity: 1; transform: translateY(0)    scale(1); }
+  to   { opacity: 0; transform: translateY(-6px) scale(0.998); }
+}
+
+/* ── Fade in utility (used by auth layout) ────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Cards stagger (v-for with --i CSS var) ───────────────────────────── */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.card-enter-active {
+  animation: cardIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+.card-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.card-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+/* Position fix for TransitionGroup leave */
+.card-leave-active { position: absolute; }
+
+/* ── Chat message rows (TransitionGroup container) ────────────────────── */
+/* The bubble pop animation lives in ChatMessage.vue scoped styles.       */
+/* Here we just handle the row-level enter/leave with a short fade.       */
+.msg-enter-active {
+  transition: opacity 0.18s ease;
+}
+.msg-enter-from {
+  opacity: 0;
+}
+.msg-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.msg-leave-to {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+/* ── User list items ──────────────────────────────────────────────────── */
+@keyframes userIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.user-enter-active {
+  animation: userIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.user-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.user-leave-to {
+  opacity: 0;
+  transform: translateX(-6px);
+}
+
+/* ── Calendar week slide ──────────────────────────────────────────────── */
+.week-next-enter-active,
+.week-prev-enter-active,
+.week-next-leave-active,
+.week-prev-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  position: absolute;
+  inset: 0;
+}
+.week-next-enter-from { opacity: 0; transform: translateX(32px); }
+.week-next-leave-to   { opacity: 0; transform: translateX(-32px); }
+.week-prev-enter-from { opacity: 0; transform: translateX(-32px); }
+.week-prev-leave-to   { opacity: 0; transform: translateX(32px); }
+
+/* ── Event chip hover ─────────────────────────────────────────────────── */
+.event-chip-hover {
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.event-chip-hover:hover {
+  filter: brightness(1.12);
+  transform: scale(1.015);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}

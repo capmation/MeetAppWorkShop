@@ -8,17 +8,18 @@
       <span class="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10">{{ users.length }}</span>
     </div>
 
-    <div v-if="users.length" class="flex flex-col gap-2">
+    <TransitionGroup v-if="users.length" tag="div" name="user" class="flex flex-col gap-2">
       <button
-        v-for="user in users"
+        v-for="(user, i) in users"
         :key="user.uid"
         type="button"
+        :style="{ '--i': i }"
         :class="[
-          'flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl transition border relative',
+          'flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl transition-all duration-200 border relative',
           selected === user.uid
-            ? 'bg-accent-500/20 border-accent-400/60 text-white'
-            : 'bg-brand-800/60 border-white/5 hover:border-white/20 text-neutral-100',
-          user.status === 'offline' ? 'opacity-70' : ''
+            ? 'bg-accent-500/20 border-accent-400/60 text-white shadow-sm shadow-accent-500/20'
+            : 'bg-brand-800/60 border-white/5 hover:border-white/20 hover:bg-brand-700/60 text-neutral-100',
+          user.status === 'offline' ? 'opacity-60' : ''
         ]"
         @click="$emit('select', user)">
         <AppAvatar :name="user.displayName" :photo="user.photoURL" size="sm" class="shrink-0" />
@@ -35,9 +36,11 @@
           {{ unread[user.uid] }}
         </span>
       </button>
-    </div>
+    </TransitionGroup>
 
-    <p v-else class="text-slate-500 text-sm text-center py-6">No users to show.</p>
+    <Transition name="msg">
+      <p v-if="!users.length" class="text-slate-500 text-sm text-center py-6">No users to show.</p>
+    </Transition>
   </div>
 </template>
 

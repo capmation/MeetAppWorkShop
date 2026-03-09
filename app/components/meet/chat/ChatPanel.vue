@@ -15,14 +15,18 @@
 
     <!-- Messages -->
     <div ref="messagesEl" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scroll-smooth">
-      <p v-if="!messages.length" class="text-center text-slate-500 text-xs mt-4">
-        No messages yet. Say hi!
-      </p>
-      <ChatMessage
-        v-for="msg in messages"
-        :key="msg.id"
-        :message="msg"
-      />
+      <Transition name="msg" appear>
+        <p v-if="!messages.length" class="text-center text-slate-500 text-xs mt-4">
+          No messages yet. Say hi!
+        </p>
+      </Transition>
+      <TransitionGroup name="msg" tag="div" class="flex flex-col gap-3">
+        <ChatMessage
+          v-for="msg in messages"
+          :key="msg.id"
+          :message="msg"
+        />
+      </TransitionGroup>
     </div>
 
     <!-- Input -->

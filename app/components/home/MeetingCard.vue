@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-dark-800/80 border border-white/10 rounded-2xl p-5 hover:border-brand-500/40 transition-all duration-200 group">
+  <div class="bg-dark-800/80 border border-white/10 rounded-2xl p-5 hover:border-brand-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/40 transition-all duration-300 ease-out group">
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <h3 class="font-semibold text-white truncate text-base">{{ meeting.title }}</h3>
@@ -14,7 +14,7 @@
         </p>
       </div>
       <!-- Video icon badge -->
-      <div class="w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-600/30 flex items-center justify-center shrink-0 group-hover:bg-brand-600/30 transition-colors">
+      <div class="w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-600/30 flex items-center justify-center shrink-0 group-hover:bg-brand-600/30 group-hover:scale-110 transition-all duration-300">
         <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
