@@ -132,7 +132,7 @@ const menuOpen = ref(false)
 const unreadTotal = computed(() => dmStore.unreadTotal)
 
 const navItems = [
-  { key: 'meet', to: '/home', label: 'Meetings' },
+  { key: 'meet', to: '/meetings', label: 'Meetings' },
   { key: 'chat', to: '/teams', label: 'Teams' },
   { key: 'calendar', to: '/calendar', label: 'Calendar' },
   { key: 'projects', to: '/projects', label: 'Projects' },
