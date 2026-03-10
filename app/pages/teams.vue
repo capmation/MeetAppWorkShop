@@ -21,14 +21,10 @@
             <p class="text-xs uppercase tracking-wide text-slate-400 font-semibold">Teams</p>
             <h1 class="text-xl font-semibold text-white">Collaboration hub</h1>
           </div>
-          <AppButton variant="ghost" size="sm" @click="router.push('/home')">
-            ← Home
-          </AppButton>
         </div>
 
-        <div class="bg-brand-900/70 border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/20 flex flex-col gap-3">
-          <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold text-white">Users</p>
+        <div>
+          <div class="mb-5">
             <span :class="['text-xs px-2 py-1 rounded-lg border', connectionStatus === 'connected' ? 'text-emerald-300 border-emerald-400/40 bg-emerald-500/10' : 'text-slate-300 border-slate-500/40 bg-slate-500/10']">
               {{ connectionStatus === 'connected' ? 'Online' : 'Offline' }}
             </span>
@@ -92,11 +88,10 @@
 
       <div class="grid lg:grid-cols-[320px_1fr] gap-6 flex-1 min-h-0">
         <div class="flex flex-col gap-4 min-h-0">
-          <div class="bg-brand-900/70 border border-white/10 rounded-2xl p-4 shadow-lg shadow-black/20 flex flex-col gap-3">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-semibold text-white">Connected users</p>
+          <div>
+            <div class="mb-5">
               <span :class="['text-xs px-2 py-1 rounded-lg border', connectionStatus === 'connected' ? 'text-emerald-300 border-emerald-400/40 bg-emerald-500/10' : 'text-slate-300 border-slate-500/40 bg-slate-500/10']">
-                {{ connectionStatus === 'connected' ? 'Online' : 'Offline' }}
+                My status: {{ connectionStatus === 'connected' ? 'Online' : 'Offline' }}
               </span>
             </div>
             <UserList
