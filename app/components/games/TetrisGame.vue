@@ -240,13 +240,13 @@ const { saveScore } = useGames()
 const { user } = useAuth()
 
 // ── Mutable game state (not reactive for perf) ───────────────────────
-let board: (string | null)[][] = []
+// Pre-fill board so render() is safe to call before startGame()
+let board: (string | null)[][] = Array.from({ length: ROWS }, () => Array<string | null>(COLS).fill(null))
 let currentPiece: Piece | null = null
 let nextPieceType: PieceType | null = null
 let animFrameId = 0
 let lastTime = 0
 let dropTimer = 0
-let softDropping = false
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function randomType(): PieceType {
@@ -350,7 +350,6 @@ function drop() {
   if (!currentPiece) return
   if (isValid(currentPiece.matrix, currentPiece.x, currentPiece.y + 1)) {
     currentPiece.y++
-    if (softDropping) score.value += 1
   }
   else {
     placePiece()
@@ -503,10 +502,9 @@ function gameLoop(timestamp: number) {
   lastTime = timestamp
   dropTimer += delta
 
-  const speed = SPEEDS[level.value - 1]
-  const effectiveSpeed = softDropping ? Math.min(speed, 50) : speed
+  const speed = SPEEDS[level.value - 1] ?? SPEEDS[0]
 
-  if (dropTimer >= effectiveSpeed) {
+  if (dropTimer >= speed) {
     dropTimer = 0
     drop()
   }
@@ -544,7 +542,12 @@ function handleKey(e: KeyboardEvent) {
       break
     case 'ArrowDown':
       e.preventDefault()
-      softDropping = true
+      // Soft drop: one row per keydown (browser key-repeat handles hold)
+      if (isValid(currentPiece.matrix, currentPiece.x, currentPiece.y + 1)) {
+        currentPiece.y++
+        score.value += 1
+        dropTimer = 0
+      }
       break
     case 'ArrowUp':
     case 'z':
@@ -559,9 +562,6 @@ function handleKey(e: KeyboardEvent) {
   }
 }
 
-function handleKeyUp(e: KeyboardEvent) {
-  if (e.key === 'ArrowDown') softDropping = false
-}
 
 function handleMobileAction(action: string) {
   if (gameState.value !== 'playing' || !currentPiece) return
@@ -596,7 +596,6 @@ function startGame() {
   lines.value = 0
   saving.value = false
   savedBest.value = false
-  softDropping = false
   dropTimer = 0
 
   initBoard()
@@ -651,13 +650,11 @@ onMounted(() => {
   nextTick(() => {
     gameRoot.value?.focus()
     render() // draw empty board
-    document.addEventListener('keyup', handleKeyUp)
   })
 })
 
 onUnmounted(() => {
   cancelAnimationFrame(animFrameId)
-  document.removeEventListener('keyup', handleKeyUp)
 })
 </script>
 
