@@ -1,4 +1,5 @@
 import type { ChatMessage } from './chat.types'
+import type { GameScore } from './games.types'
 
 export interface RoomUser {
   socketId: string
@@ -22,7 +23,33 @@ export interface CallPayload {
   meetingId: string
 }
 
+// ── Tetris multiplayer types ──────────────────────────────────────────
+export interface TetrisLobbyPlayer {
+  uid: string
+  displayName: string
+  photoURL: string | null
+  inQueue: boolean
+}
+
+export interface TetrisMatchPlayer {
+  uid: string
+  displayName: string
+  photoURL: string | null
+}
+
+export interface TetrisRanking {
+  uid: string
+  displayName: string
+  photoURL: string | null
+  score: number
+  level: number
+  lines: number
+  place: number
+}
+
+// ── Event maps ────────────────────────────────────────────────────────
 export interface ServerToClientEvents {
+  // Meetings / presence / chat (existing)
   'room:users': (users: RoomUser[]) => void
   'user:joined': (user: RoomUser) => void
   'user:left': (socketId: string) => void
@@ -40,9 +67,28 @@ export interface ServerToClientEvents {
   'call:declined': (data: { byUid: string; byName: string }) => void
   'call:cancelled': (data: { byUid: string }) => void
   'call:unavailable': (data: { toUid: string }) => void
+
+  // Tetris lobby
+  'tetris:lobby-state': (players: TetrisLobbyPlayer[]) => void
+  'tetris:queue-size': (count: number) => void
+
+  // Tetris match lifecycle
+  'tetris:match-found': (data: { matchId: string; players: TetrisMatchPlayer[] }) => void
+  'tetris:countdown': (seconds: number) => void
+  'tetris:match-start': (matchId: string) => void
+
+  // Tetris in-game
+  'tetris:opponent-board': (data: { uid: string; rows: (string | null)[][] }) => void
+  'tetris:garbage-recv': (data: { lines: number; fromUid: string }) => void
+  'tetris:player-out': (data: { uid: string; displayName: string; finalScore: number }) => void
+  'tetris:match-end': (data: { rankings: TetrisRanking[] }) => void
+
+  // Games real-time leaderboard
+  'games:score-update': (data: { gameId: string; entry: GameScore }) => void
 }
 
 export interface ClientToServerEvents {
+  // Meetings / presence / chat (existing)
   'room:join': (data: { roomId: string; token: string; user: { uid: string; displayName: string; photoURL: string | null } }) => void
   'room:leave': () => void
   'chat:send': (data: { roomId: string; text: string }) => void
@@ -55,4 +101,19 @@ export interface ClientToServerEvents {
   'call:answer': (data: { toUid: string; meetingId: string }) => void
   'call:decline': (data: { toUid: string }) => void
   'call:cancel': (data: { toUid: string }) => void
+
+  // Tetris lobby
+  'tetris:lobby-join': (data: { token: string; user: { uid: string; displayName: string; photoURL: string | null } }) => void
+  'tetris:lobby-leave': () => void
+  'tetris:queue-join': () => void
+  'tetris:queue-leave': () => void
+
+  // Tetris in-game
+  'tetris:board-update': (data: { matchId: string; rows: (string | null)[][] }) => void
+  'tetris:garbage-send': (data: { matchId: string; lines: number }) => void
+  'tetris:game-over': (data: { matchId: string; score: number; level: number; lines: number }) => void
+
+  // Games real-time leaderboard
+  'games:leaderboard-join': (data: { gameId: string }) => void
+  'games:leaderboard-leave': (data: { gameId: string }) => void
 }
