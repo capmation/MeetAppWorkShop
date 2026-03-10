@@ -1,9 +1,17 @@
 <template>
-  <div class="relative z-10 flex flex-col min-h-screen">
+  <div class="relative min-h-screen">
+    <div v-if="initializing" class="min-h-screen flex items-center justify-center bg-brand-900">
+      <div class="flex flex-col items-center gap-3 text-slate-200">
+        <AppLoader size="md" />
+        <p class="text-sm text-slate-400">Loading your preferences…</p>
+      </div>
+    </div>
+
+    <div v-else class="relative z-10 flex flex-col min-h-screen">
     <!-- Top bar -->
     <header class="flex items-center justify-between px-6 md:px-10 py-5 shrink-0">
       <div class="flex items-center gap-3">
-        <img src="/capmation-logo.svg" alt="Capmation" class="h-7 w-auto" />
+        <img src="/capmation-logo.svg" alt="Capmation" class="h-7 w-auto">
         <span class="font-semibold text-white text-sm hidden sm:block">MeetApp</span>
       </div>
       <button
@@ -114,6 +122,7 @@
     <footer class="shrink-0 text-center py-5 text-xs text-slate-600">
       Capmation MeetApp &mdash; your workspace, your way
     </footer>
+    </div>
   </div>
 </template>
 
@@ -128,6 +137,7 @@ const router = useRouter()
 const { fetchSettings, saveSettings } = useUserSettings()
 
 const step = ref<'welcome' | 'choose'>('welcome')
+const initializing = ref(true)
 const selected = ref<HomePage | null>(null)
 const saving = ref(false)
 
@@ -221,15 +231,19 @@ onMounted(async () => {
     const s = await fetchSettings()
     if (s.onboardingDone && s.homePage) {
       await router.replace(routeMap[s.homePage])
+      return
     }
   }
   catch {
     // ignore, show onboarding
   }
+  finally {
+    initializing.value = false
+  }
 })
 </script>
 
-<style scoped>
+<style scoped lang="postcss">
 .text-gradient {
   background: linear-gradient(135deg, theme('colors.accent.400'), theme('colors.blue.400'));
   -webkit-background-clip: text;
