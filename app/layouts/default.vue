@@ -21,24 +21,56 @@
         <span class="font-semibold text-white text-sm hidden sm:block">Teams</span>
       </NuxtLink>
 
-      <div class="ml-auto flex items-center gap-3">
-        <AppAvatar
-          v-if="user"
-          :name="user.displayName"
-          :photo="user.photoURL"
-          size="sm"
-          class="cursor-pointer ring-1 ring-white/5"
-        />
-        <button
-          class="text-neutral-200 hover:text-white transition-colors text-sm flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5 border border-white/0 hover:border-white/10"
-          @click="logout"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span class="hidden sm:inline">Sign out</span>
-        </button>
+      <div class="ml-auto flex items-center">
+        <div v-if="user" ref="userMenuRef" class="relative">
+          <button
+            class="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-white/5 transition-colors"
+            @click="userMenuOpen = !userMenuOpen"
+          >
+            <AppAvatar :name="user.displayName || 'User'" :photo="user.photoURL" size="sm" />
+            <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <Transition name="fade-overlay">
+            <div
+              v-if="userMenuOpen"
+              class="absolute right-0 mt-2 w-64 rounded-2xl border border-white/10 bg-brand-900/95 shadow-xl shadow-black/30 p-3 z-50"
+            >
+              <div class="flex items-center gap-3 pb-3 border-b border-white/5">
+                <AppAvatar :name="user.displayName || 'User'" :photo="user.photoURL" size="sm" />
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-white truncate">{{ user.displayName }}</p>
+                  <p class="text-xs text-slate-400 truncate">{{ user.email }}</p>
+                </div>
+              </div>
+
+              <div class="py-2 space-y-1">
+                <NuxtLink
+                  to="/settings"
+                  class="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors text-sm text-slate-200"
+                  @click="userMenuOpen = false"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.066z" />
+                  </svg>
+                  Settings
+                </NuxtLink>
+
+                <button
+                  class="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors text-sm text-rose-200"
+                  @click="logout"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
       </div>
     </header>
 
@@ -120,14 +152,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import SideNav from '~/components/shared/SideNav.vue'
+import AppAvatar from '~/components/shared/AppAvatar.vue'
 import { useDmStore } from '~/stores/dm.store'
 
 const { user, logout } = useAuth()
 const route = useRoute()
 const dmStore = useDmStore()
 const menuOpen = ref(false)
+const userMenuOpen = ref(false)
+const userMenuRef = ref<HTMLElement | null>(null)
 
 const unreadTotal = computed(() => dmStore.unreadTotal)
 
@@ -137,6 +172,21 @@ const navItems = [
   { key: 'calendar', to: '/calendar', label: 'Calendar' },
   { key: 'projects', to: '/projects', label: 'Projects' },
 ]
+
+function handleOutsideClick(event: MouseEvent) {
+  if (!userMenuRef.value) return
+  if (!userMenuRef.value.contains(event.target as Node)) {
+    userMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleOutsideClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleOutsideClick)
+})
 </script>
 
 <style scoped>

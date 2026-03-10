@@ -58,6 +58,13 @@ export const useAuth = () => {
     authStore.setToken(token)
   }
 
+  async function updateDisplayName(displayName: string): Promise<void> {
+    const currentUser = auth.currentUser
+    if (!currentUser) throw new Error('Not authenticated')
+    await updateProfile(currentUser, { displayName })
+    authStore.setUser({ ...authStore.user!, displayName })
+  }
+
   async function logout(): Promise<void> {
     await signOut(auth)
     authStore.clear()
@@ -99,6 +106,7 @@ export const useAuth = () => {
     loginWithGoogle,
     loginWithEmail,
     registerWithEmail,
+    updateDisplayName,
     logout,
     refreshToken,
     initAuthListener,
