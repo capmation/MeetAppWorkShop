@@ -71,6 +71,7 @@ const props = defineProps<{
 }>()
 
 const { getTopScores } = useGames()
+const { getSocket, connect } = useSocket()
 
 const scores = ref<GameScore[]>([])
 const loading = ref(false)
@@ -99,7 +100,33 @@ async function load() {
   }
 }
 
-onMounted(load)
+function handleScoreUpdate({ gameId, entry }: { gameId: string; entry: GameScore }) {
+  if (gameId !== props.gameId) return
+  const idx = scores.value.findIndex(s => s.uid === entry.uid)
+  if (idx !== -1) {
+    scores.value[idx] = entry
+  }
+  else {
+    scores.value.push(entry)
+  }
+  // Re-sort by score descending and keep top 10
+  scores.value = scores.value
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+}
+
+onMounted(() => {
+  load()
+  const s = connect()
+  s.emit('games:leaderboard-join', { gameId: props.gameId })
+  s.on('games:score-update', handleScoreUpdate)
+})
+
+onUnmounted(() => {
+  const s = getSocket()
+  s.emit('games:leaderboard-leave', { gameId: props.gameId })
+  s.off('games:score-update', handleScoreUpdate)
+})
 
 defineExpose({ reload: load })
 </script>
