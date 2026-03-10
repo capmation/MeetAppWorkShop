@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Authentication', () => {
   test('shows login page at root', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText('Capmation Meet')).toBeVisible()
+    await expect(page.getByText('CAPCOM 2.0')).toBeVisible()
     await expect(page.getByText('Continue with Google')).toBeVisible()
   })
 
