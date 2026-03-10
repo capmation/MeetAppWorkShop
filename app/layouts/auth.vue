@@ -6,8 +6,8 @@
         <div class="inline-flex items-center justify-center px-4 py-3 rounded-xl bg-brand-900/90 border border-white/10 mb-4 shadow-lg shadow-black/30">
           <img src="/capmation-logo.svg" alt="Capmation" class="h-8 w-auto" />
         </div>
-        <h1 class="text-3xl font-semibold text-white tracking-tight">Capmation Meet</h1>
-        <p class="text-neutral-200/80 mt-2 text-sm">Video meetings, reimagined.</p>
+        <h1 class="text-3xl font-semibold text-white tracking-tight">CAPCOM 2.0</h1>
+        <p class="text-neutral-200/80 mt-2 text-sm">Keep it simple, stay calm.</p>
       </div>
       <slot />
     </div>

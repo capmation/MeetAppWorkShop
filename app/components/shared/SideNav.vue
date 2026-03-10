@@ -25,6 +25,10 @@
         <svg v-else-if="item.key === 'projects'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
         </svg>
+        <!-- Time off -->
+        <svg v-else-if="item.key === 'timeoff'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9h18M9 21V9m6 12V9m4-6H5a2 2 0 00-2 2v2h18V5a2 2 0 00-2-2z" />
+        </svg>
         <!-- Teams -->
         <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2a3 3 0 015.356-1.857M12 4a3 3 0 110 6 3 3 0 010-6zM6 9a3 3 0 110-6 3 3 0 010 6zM18 9a3 3 0 110-6 3 3 0 010 6z" />
@@ -54,5 +58,6 @@ const items = [
   { key: 'chat', to: '/teams', label: 'Teams' },
   { key: 'calendar', to: '/calendar', label: 'Calendar' },
   { key: 'projects', to: '/projects', label: 'Projects' },
+  { key: 'timeoff', to: '/time-off', label: 'Time Off' },
 ]
 </script>
