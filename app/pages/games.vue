@@ -77,6 +77,10 @@
               v-if="activeGame === 'tetris'"
               @score-saved="onScoreSaved"
             />
+            <SnakeGame
+              v-else-if="activeGame === 'snake'"
+              @score-saved="onScoreSaved"
+            />
           </div>
           <div class="w-full xl:w-80 shrink-0">
             <GameScoreboard
@@ -88,8 +92,8 @@
         </div>
       </template>
 
-      <!-- ── Multiplayer ───────────────────────────────────────────── -->
-      <template v-else>
+      <!-- ── Multiplayer (Tetris only) ─────────────────────────────── -->
+      <template v-else-if="activeGame === 'tetris'">
         <!-- Lobby -->
         <div v-if="!activeMatch" class="flex flex-col xl:flex-row gap-6 md:gap-8 items-start">
           <div class="flex-1 max-w-lg w-full">

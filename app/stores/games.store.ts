@@ -34,7 +34,7 @@ export const GAME_DEFINITIONS: GameDefinition[] = [
     title: 'Snake',
     description: 'Guide the snake, eat apples, and avoid walls. A classic endless challenge.',
     emoji: '🐍',
-    available: false,
+    available: true,
     color: 'from-green-500/20 to-emerald-600/20',
   },
   {
