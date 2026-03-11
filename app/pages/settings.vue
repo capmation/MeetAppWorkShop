@@ -158,7 +158,7 @@
 import { h } from 'vue'
 import type { HomePage } from '~/composables/useUserSettings'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { user, updateDisplayName } = useAuth()
 const { fetchSettings, saveSettings } = useUserSettings()
