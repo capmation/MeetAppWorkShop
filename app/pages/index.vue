@@ -101,7 +101,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth', middleware: 'guest' })
 
-const { loginWithGoogle, loginWithEmail, registerWithEmail, isAuthenticated } = useAuth()
+const { loginWithGoogle, loginWithEmail, registerWithEmail } = useAuth()
 const router = useRouter()
 
 const mode = ref<'signin' | 'signup'>('signin')
@@ -110,10 +110,6 @@ const errorMessage = ref('')
 const email = ref('')
 const password = ref('')
 const displayName = ref('')
-
-watchEffect(() => {
-  if (isAuthenticated.value) router.replace('/home')
-})
 
 function switchMode(m: 'signin' | 'signup') {
   mode.value = m
