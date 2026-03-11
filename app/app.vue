@@ -49,20 +49,26 @@ watch(
     // If auth triggered a redirect (e.g. → /  or → /home), afterEach fires
     // once the new route is fully committed, so the layout has already switched.
     const unsubscribe = router.afterEach((_to, _from, failure) => {
-      // Skip cancelled/redirected navigations (e.g. guest middleware redirecting / → /home).
-      // Only hide the overlay once the final, successful navigation commits.
+      // Skip redirected/aborted navigations — wait for the final successful one.
       if (failure) return
       unsubscribe()
-      // One extra tick so the new page's DOM is painted before we reveal it
-      nextTick(() => { overlayVisible.value = false })
+      // Double rAF: Vue has already written to the DOM after afterEach, but the
+      // browser hasn't painted yet. Two frames ensures the new layout is on-screen
+      // before the overlay starts fading, eliminating any flash.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          overlayVisible.value = false
+        })
+      })
     })
 
-    // Fallback: if no navigation occurs (user is authenticated and already
-    // on a valid page), hide after a short timeout
+    // Fallback: user is already authenticated and on the correct page — no
+    // navigation will fire, so afterEach never triggers. Use a generous timeout
+    // that only fires when the router is truly idle.
     setTimeout(() => {
-      unsubscribe()
+      unsubscribe() // safe to call even if already unsubscribed
       overlayVisible.value = false
-    }, 200)
+    }, 1500)
   },
   { immediate: true },
 )

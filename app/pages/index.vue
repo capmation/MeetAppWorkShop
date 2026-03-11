@@ -1,5 +1,8 @@
 <template>
-  <div>
+  <!-- Guard: renders nothing while an authenticated user is being redirected away.
+       The auth layout card will be empty during the brief mount before the guest
+       middleware fires navigateTo('/home'), so no form content bleeds through. -->
+  <div v-if="!authStore.user">
     <div class="bg-brand-900/80 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/30">
       <Transition name="modal-panel" mode="out-in">
         <!-- Sign in view -->
@@ -101,6 +104,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth', middleware: 'guest' })
 
+const authStore = useAuthStore()
 const { loginWithGoogle, loginWithEmail, registerWithEmail } = useAuth()
 const router = useRouter()
 
