@@ -6,17 +6,45 @@
         <span>🏆</span> Leaderboard
       </h3>
       <button
-        class="text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+        class="text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5 disabled:opacity-40 disabled:pointer-events-none"
         :disabled="loading"
         @click="load"
       >
-        ↺ Refresh
+        <span v-if="loading" class="flex items-center gap-1">
+          <AppLoader size="xs" /> Loading
+        </span>
+        <span v-else>↺ Refresh</span>
       </button>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <AppLoader size="sm" />
+    <!-- Skeleton loading (first load) -->
+    <div v-if="loading && scores.length === 0" class="divide-y divide-white/5">
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="flex items-center gap-3 px-5 py-3"
+      >
+        <div class="w-7 h-4 rounded bg-white/5 animate-pulse shrink-0" />
+        <div class="w-7 h-7 rounded-full bg-white/5 animate-pulse shrink-0" />
+        <div class="flex-1 space-y-1.5">
+          <div class="h-3 rounded bg-white/5 animate-pulse w-3/4" />
+          <div class="h-2.5 rounded bg-white/5 animate-pulse w-1/2" />
+        </div>
+        <div class="w-16 h-3.5 rounded bg-white/5 animate-pulse shrink-0" />
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-10 px-4 text-center">
+      <p class="text-2xl mb-3">⚠️</p>
+      <p class="text-sm font-medium text-white mb-1">Could not load scores</p>
+      <p class="text-xs text-slate-500 mb-4">{{ error }}</p>
+      <button
+        class="text-xs text-accent-400 hover:text-accent-300 underline underline-offset-2 transition-colors"
+        @click="load"
+      >
+        Try again
+      </button>
     </div>
 
     <!-- Empty state -->
@@ -59,6 +87,12 @@
         </span>
       </li>
     </ul>
+
+    <!-- Subtle refresh indicator while list is already showing -->
+    <div v-if="loading && scores.length > 0" class="flex items-center justify-center gap-2 px-5 py-2.5 border-t border-white/5">
+      <AppLoader size="xs" class="text-slate-500" />
+      <span class="text-xs text-slate-500">Updating…</span>
+    </div>
   </div>
 </template>
 
@@ -75,6 +109,7 @@ const { getSocket, connect } = useSocket()
 
 const scores = ref<GameScore[]>([])
 const loading = ref(false)
+const error = ref<string | null>(null)
 
 function rankEmoji(i: number): string {
   if (i === 0) return '🥇'
@@ -92,8 +127,12 @@ function rankClass(i: number): string {
 
 async function load() {
   loading.value = true
+  error.value = null
   try {
     scores.value = await getTopScores(props.gameId)
+  }
+  catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Unknown error'
   }
   finally {
     loading.value = false
@@ -109,7 +148,6 @@ function handleScoreUpdate({ gameId, entry }: { gameId: string; entry: GameScore
   else {
     scores.value.push(entry)
   }
-  // Re-sort by score descending and keep top 10
   scores.value = scores.value
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)

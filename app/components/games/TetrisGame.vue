@@ -1,177 +1,245 @@
 <template>
   <div
     ref="gameRoot"
-    class="flex flex-col items-center gap-6 outline-none select-none"
+    class="flex flex-col items-center gap-4 outline-none select-none w-full"
     tabindex="0"
     @keydown="handleKey"
   >
-    <!-- ── Main play area ─────────────────────────────────────────── -->
-    <div class="flex gap-4 items-start">
 
-      <!-- Left panel: stats -->
-      <div class="flex flex-col gap-3 w-28">
-        <div class="info-panel">
-          <p class="info-label">Score</p>
-          <p class="info-value font-mono">{{ score.toLocaleString() }}</p>
-        </div>
-        <div class="info-panel">
-          <p class="info-label">Level</p>
-          <p class="info-value">{{ level }}</p>
-        </div>
-        <div class="info-panel">
-          <p class="info-label">Lines</p>
-          <p class="info-value">{{ lines }}</p>
-        </div>
+    <!-- ══════════════════════════════════════════════════════════
+         MOBILE layout  (<md)
+    ═══════════════════════════════════════════════════════════════ -->
+    <div class="flex flex-col items-center gap-3 w-full md:hidden">
 
-        <!-- Speed bar -->
-        <div class="info-panel">
-          <p class="info-label mb-2">Speed</p>
-          <div class="flex flex-col gap-1">
-            <div
-              v-for="l in 10"
-              :key="l"
-              :class="[
-                'h-1.5 rounded-full transition-all duration-500',
-                l <= level ? 'bg-accent-400' : 'bg-white/10',
-              ]"
-            />
-          </div>
+      <!-- Compact stats row -->
+      <div class="flex items-center gap-2 w-full max-w-xs">
+        <div class="stat-pill flex-1">
+          <span class="stat-label">Score</span>
+          <span class="stat-val font-mono">{{ score.toLocaleString() }}</span>
+        </div>
+        <div class="stat-pill w-16">
+          <span class="stat-label">Lv</span>
+          <span class="stat-val">{{ level }}</span>
+        </div>
+        <div class="stat-pill w-16">
+          <span class="stat-label">Lines</span>
+          <span class="stat-val">{{ lines }}</span>
+        </div>
+        <!-- Next piece mini -->
+        <div class="stat-pill p-1.5 shrink-0">
+          <canvas
+            ref="nextCanvasRefMobile"
+            :width="CELL_M * 4"
+            :height="CELL_M * 4"
+            class="block"
+          />
         </div>
       </div>
 
-      <!-- Game canvas + overlays -->
-      <div class="relative">
+      <!-- Canvas + touch area -->
+      <div
+        class="relative touch-none"
+        @touchstart.passive="onTouchStart"
+        @touchmove.prevent="onTouchMove"
+        @touchend.prevent="onTouchEnd"
+      >
         <canvas
-          ref="canvasRef"
-          :width="COLS * CELL"
-          :height="ROWS * CELL"
+          ref="canvasRefMobile"
+          :width="COLS * CELL_M"
+          :height="ROWS * CELL_M"
           class="rounded-xl border border-white/20 block bg-brand-900"
         />
 
-        <!-- State overlays -->
+        <!-- Overlays -->
         <Transition name="t-fade">
           <div
             v-if="gameState !== 'playing'"
             class="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-brand-900/88 backdrop-blur-sm"
           >
-            <!-- IDLE -->
             <template v-if="gameState === 'idle'">
-              <p class="text-5xl mb-4">🎮</p>
-              <h3 class="text-xl font-bold text-white mb-1">Tetris</h3>
-              <p class="text-xs text-slate-400 mb-6 text-center px-6 leading-relaxed">
+              <p class="text-5xl mb-3">🎮</p>
+              <h3 class="text-lg font-bold text-white mb-1">Tetris</h3>
+              <p class="text-xs text-slate-400 mb-5 text-center px-6 leading-relaxed">
                 Stack blocks, clear lines,<br>race through 10 speed levels!
               </p>
-              <button class="btn-primary px-8 py-2.5" @click="startGame">
-                Start Game
-              </button>
+              <p class="text-[11px] text-slate-500 mb-4 text-center leading-relaxed">
+                👆 Tap = Rotate &nbsp;·&nbsp; ↔ Drag = Move<br>
+                ↓ Swipe = Drop &nbsp;·&nbsp; ↑ Swipe = Hard drop
+              </p>
+              <button class="btn-primary px-8 py-2.5" @click="startGame">Start Game</button>
             </template>
-
-            <!-- PAUSED -->
             <template v-else-if="gameState === 'paused'">
-              <p class="text-5xl mb-4">⏸</p>
-              <h3 class="text-xl font-bold text-white mb-6">Paused</h3>
-              <button class="btn-primary px-8 py-2.5" @click="togglePause">
-                ▶ Resume
-              </button>
+              <p class="text-5xl mb-3">⏸</p>
+              <h3 class="text-lg font-bold text-white mb-5">Paused</h3>
+              <button class="btn-primary px-8 py-2.5" @click="togglePause">▶ Resume</button>
             </template>
-
-            <!-- GAME OVER -->
             <template v-else-if="gameState === 'gameover'">
-              <p class="text-5xl mb-3">💀</p>
-              <h3 class="text-xl font-bold text-white mb-1">Game Over</h3>
-              <p class="text-2xl font-mono font-bold text-accent-400 mb-1">
-                {{ score.toLocaleString() }}
+              <p class="text-5xl mb-2">💀</p>
+              <h3 class="text-lg font-bold text-white mb-1">Game Over</h3>
+              <p class="text-2xl font-mono font-bold text-accent-400 mb-1">{{ score.toLocaleString() }}</p>
+              <p class="text-xs text-slate-400 mb-2">Level {{ level }} · {{ lines }} lines</p>
+              <p v-if="saving" class="text-xs text-slate-400 mb-4 flex items-center gap-1.5">
+                <AppLoader size="xs" /> Saving…
               </p>
-              <p class="text-xs text-slate-400 mb-2">
-                Level {{ level }} · {{ lines }} lines
-              </p>
-              <p v-if="saving" class="text-xs text-slate-400 mb-5 flex items-center gap-1.5">
-                <AppLoader size="xs" />
-                Saving score…
-              </p>
-              <p v-else-if="savedBest" class="text-xs text-yellow-400 mb-5">
-                🏆 New personal best!
-              </p>
-              <p v-else class="text-xs text-slate-500 mb-5">Score saved</p>
-              <button class="btn-primary px-8 py-2.5" @click="startGame">
-                ↺ Play Again
-              </button>
+              <p v-else-if="savedBest" class="text-xs text-yellow-400 mb-4">🏆 New personal best!</p>
+              <p v-else class="text-xs text-slate-500 mb-4">Score saved</p>
+              <button class="btn-primary px-8 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="startGame">↺ Play Again</button>
             </template>
           </div>
         </Transition>
       </div>
 
-      <!-- Right panel: next piece + controls -->
-      <div class="flex flex-col gap-3 w-28">
-        <div class="info-panel">
-          <p class="info-label mb-2">Next</p>
-          <canvas
-            ref="nextCanvasRef"
-            :width="CELL * 4"
-            :height="CELL * 4"
-            class="block mx-auto"
-          />
+      <!-- Speed bar (thin, below canvas) -->
+      <div class="flex gap-1 w-full max-w-xs items-center">
+        <span class="text-[10px] text-slate-500 uppercase tracking-wide mr-1">Spd</span>
+        <div
+          v-for="l in 10"
+          :key="l"
+          :class="['flex-1 h-1.5 rounded-full transition-all duration-500', l <= level ? 'bg-accent-400' : 'bg-white/10']"
+        />
+      </div>
+
+      <!-- Action buttons row -->
+      <div
+        v-if="gameState === 'playing' || gameState === 'paused'"
+        class="flex gap-3"
+      >
+        <button class="btn-ghost px-5 py-2 text-sm" @click="togglePause">
+          {{ gameState === 'paused' ? '▶ Resume' : '⏸ Pause' }}
+        </button>
+        <button class="btn-ghost px-5 py-2 text-sm" @click="startGame">↺ Restart</button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         DESKTOP layout  (md+)
+    ═══════════════════════════════════════════════════════════════ -->
+    <div class="hidden md:flex flex-col items-center gap-6">
+      <div class="flex gap-4 items-start">
+
+        <!-- Left panel: stats -->
+        <div class="flex flex-col gap-3 w-28">
+          <div class="info-panel">
+            <p class="info-label">Score</p>
+            <p class="info-value font-mono">{{ score.toLocaleString() }}</p>
+          </div>
+          <div class="info-panel">
+            <p class="info-label">Level</p>
+            <p class="info-value">{{ level }}</p>
+          </div>
+          <div class="info-panel">
+            <p class="info-label">Lines</p>
+            <p class="info-value">{{ lines }}</p>
+          </div>
+          <div class="info-panel">
+            <p class="info-label mb-2">Speed</p>
+            <div class="flex flex-col gap-1">
+              <div
+                v-for="l in 10"
+                :key="l"
+                :class="['h-1.5 rounded-full transition-all duration-500', l <= level ? 'bg-accent-400' : 'bg-white/10']"
+              />
+            </div>
+          </div>
         </div>
 
-        <div class="info-panel text-left">
-          <p class="info-label mb-2">Keys</p>
-          <div class="space-y-1.5">
-            <div v-for="c in CONTROLS_HINT" :key="c.key" class="flex items-start gap-1.5">
-              <kbd class="mt-0.5 shrink-0 text-[9px] bg-brand-700 border border-white/10 px-1 py-0.5 rounded font-mono text-white leading-none">
-                {{ c.key }}
-              </kbd>
-              <span class="text-[10px] text-slate-400 leading-tight">{{ c.action }}</span>
+        <!-- Game canvas + overlays -->
+        <div class="relative">
+          <canvas
+            ref="canvasRef"
+            :width="COLS * CELL"
+            :height="ROWS * CELL"
+            class="rounded-xl border border-white/20 block bg-brand-900"
+          />
+          <Transition name="t-fade">
+            <div
+              v-if="gameState !== 'playing'"
+              class="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-brand-900/88 backdrop-blur-sm"
+            >
+              <template v-if="gameState === 'idle'">
+                <p class="text-5xl mb-4">🎮</p>
+                <h3 class="text-xl font-bold text-white mb-1">Tetris</h3>
+                <p class="text-xs text-slate-400 mb-6 text-center px-6 leading-relaxed">
+                  Stack blocks, clear lines,<br>race through 10 speed levels!
+                </p>
+                <button class="btn-primary px-8 py-2.5" @click="startGame">Start Game</button>
+              </template>
+              <template v-else-if="gameState === 'paused'">
+                <p class="text-5xl mb-4">⏸</p>
+                <h3 class="text-xl font-bold text-white mb-6">Paused</h3>
+                <button class="btn-primary px-8 py-2.5" @click="togglePause">▶ Resume</button>
+              </template>
+              <template v-else-if="gameState === 'gameover'">
+                <p class="text-5xl mb-3">💀</p>
+                <h3 class="text-xl font-bold text-white mb-1">Game Over</h3>
+                <p class="text-2xl font-mono font-bold text-accent-400 mb-1">{{ score.toLocaleString() }}</p>
+                <p class="text-xs text-slate-400 mb-2">Level {{ level }} · {{ lines }} lines</p>
+                <p v-if="saving" class="text-xs text-slate-400 mb-5 flex items-center gap-1.5">
+                  <AppLoader size="xs" /> Saving score…
+                </p>
+                <p v-else-if="savedBest" class="text-xs text-yellow-400 mb-5">🏆 New personal best!</p>
+                <p v-else class="text-xs text-slate-500 mb-5">Score saved</p>
+                <button class="btn-primary px-8 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving" @click="startGame">↺ Play Again</button>
+              </template>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Right panel: next piece + keys -->
+        <div class="flex flex-col gap-3 w-28">
+          <div class="info-panel">
+            <p class="info-label mb-2">Next</p>
+            <canvas
+              ref="nextCanvasRef"
+              :width="CELL * 4"
+              :height="CELL * 4"
+              class="block mx-auto"
+            />
+          </div>
+          <div class="info-panel text-left">
+            <p class="info-label mb-2">Keys</p>
+            <div class="space-y-1.5">
+              <div v-for="c in CONTROLS_HINT" :key="c.key" class="flex items-start gap-1.5">
+                <kbd class="mt-0.5 shrink-0 text-[9px] bg-brand-700 border border-white/10 px-1 py-0.5 rounded font-mono text-white leading-none">
+                  {{ c.key }}
+                </kbd>
+                <span class="text-[10px] text-slate-400 leading-tight">{{ c.action }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ── Mobile on-screen controls ─────────────────────────────── -->
-    <div class="flex flex-col items-center gap-2 md:hidden w-full max-w-xs">
-      <button class="mobile-btn" @click="handleMobileAction('rotate')">↻ Rotate</button>
-      <div class="flex gap-3 w-full">
-        <button class="mobile-btn flex-1" @click="handleMobileAction('left')">← Left</button>
-        <button class="mobile-btn flex-1" @click="handleMobileAction('right')">Right →</button>
-      </div>
-      <div class="flex gap-3 w-full">
-        <button class="mobile-btn flex-1" @click="handleMobileAction('down')">↓ Drop</button>
-        <button class="mobile-btn flex-1 bg-accent-500/20 border-accent-400/30 text-accent-300" @click="handleMobileAction('harddrop')">
-          ⬇ Hard Drop
+      <!-- Desktop bottom buttons -->
+      <div class="flex gap-3">
+        <button
+          v-if="gameState === 'playing' || gameState === 'paused'"
+          class="btn-ghost px-5 py-2 text-sm"
+          @click="togglePause"
+        >
+          {{ gameState === 'paused' ? '▶ Resume' : '⏸ Pause' }}
+        </button>
+        <button
+          v-if="gameState !== 'idle'"
+          class="btn-ghost px-5 py-2 text-sm"
+          @click="startGame"
+        >
+          ↺ Restart
         </button>
       </div>
     </div>
 
-    <!-- ── Bottom action buttons ───────────────────────────────────── -->
-    <div class="flex gap-3">
-      <button
-        v-if="gameState === 'playing' || gameState === 'paused'"
-        class="btn-ghost px-5 py-2 text-sm"
-        @click="togglePause"
-      >
-        {{ gameState === 'paused' ? '▶ Resume' : '⏸ Pause' }}
-      </button>
-      <button
-        v-if="gameState !== 'idle'"
-        class="btn-ghost px-5 py-2 text-sm"
-        @click="startGame"
-      >
-        ↺ Restart
-      </button>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// ── Constants ────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────
 const COLS = 10
 const ROWS = 20
-const CELL = 30
+const CELL = 30    // desktop cell size
+const CELL_M = 28  // mobile cell size (280px wide canvas)
 
-/** Drop interval in ms for each level (1–10) */
 const SPEEDS = [800, 700, 600, 500, 400, 300, 250, 200, 150, 100]
-
-/** Score for clearing 1/2/3/4 lines × current level */
 const SCORE_TABLE = [0, 100, 300, 500, 800]
 
 const CONTROLS_HINT = [
@@ -182,17 +250,12 @@ const CONTROLS_HINT = [
   { key: 'P', action: 'Pause' },
 ]
 
-// ── Tetrominos ───────────────────────────────────────────────────────
+// ── Tetrominos ────────────────────────────────────────────────────────
 type PieceType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L'
 
 const PIECE_COLORS: Record<PieceType, string> = {
-  I: '#00f0f0',
-  O: '#f0d000',
-  T: '#a000f0',
-  S: '#00d000',
-  Z: '#f00000',
-  J: '#0000f0',
-  L: '#f0a000',
+  I: '#00f0f0', O: '#f0d000', T: '#a000f0',
+  S: '#00d000', Z: '#f00000', J: '#0000f0', L: '#f0a000',
 }
 
 const PIECE_MATRICES: Record<PieceType, number[][]> = {
@@ -207,7 +270,6 @@ const PIECE_MATRICES: Record<PieceType, number[][]> = {
 
 const ALL_TYPES = Object.keys(PIECE_MATRICES) as PieceType[]
 
-// ── Types ────────────────────────────────────────────────────────────
 type GameState = 'idle' | 'playing' | 'paused' | 'gameover'
 
 interface Piece {
@@ -217,17 +279,19 @@ interface Piece {
   y: number
 }
 
-// ── Emits ────────────────────────────────────────────────────────────
+// ── Emits ─────────────────────────────────────────────────────────────
 const emit = defineEmits<{
   scoreSaved: [score: number, isNewBest: boolean]
 }>()
 
-// ── Template refs ────────────────────────────────────────────────────
+// ── Template refs ─────────────────────────────────────────────────────
 const gameRoot = ref<HTMLElement | null>(null)
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-const nextCanvasRef = ref<HTMLCanvasElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null)           // desktop
+const nextCanvasRef = ref<HTMLCanvasElement | null>(null)       // desktop
+const canvasRefMobile = ref<HTMLCanvasElement | null>(null)     // mobile
+const nextCanvasRefMobile = ref<HTMLCanvasElement | null>(null) // mobile
 
-// ── Reactive state ───────────────────────────────────────────────────
+// ── Reactive state ────────────────────────────────────────────────────
 const gameState = ref<GameState>('idle')
 const score = ref(0)
 const level = ref(1)
@@ -235,12 +299,11 @@ const lines = ref(0)
 const saving = ref(false)
 const savedBest = ref(false)
 
-// ── Composables ──────────────────────────────────────────────────────
+// ── Composables ───────────────────────────────────────────────────────
 const { saveScore } = useGames()
 const { user } = useAuth()
 
-// ── Mutable game state (not reactive for perf) ───────────────────────
-// Pre-fill board so render() is safe to call before startGame()
+// ── Mutable game state ────────────────────────────────────────────────
 let board: (string | null)[][] = Array.from({ length: ROWS }, () => Array<string | null>(COLS).fill(null))
 let currentPiece: Piece | null = null
 let nextPieceType: PieceType | null = null
@@ -248,7 +311,7 @@ let animFrameId = 0
 let lastTime = 0
 let dropTimer = 0
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────
 function randomType(): PieceType {
   return ALL_TYPES[Math.floor(Math.random() * ALL_TYPES.length)]
 }
@@ -282,7 +345,7 @@ function isValid(matrix: number[][], px: number, py: number): boolean {
   return true
 }
 
-// ── Board ops ────────────────────────────────────────────────────────
+// ── Board ops ─────────────────────────────────────────────────────────
 function initBoard() {
   board = Array.from({ length: ROWS }, () => Array<string | null>(COLS).fill(null))
 }
@@ -295,9 +358,7 @@ function lockPiece() {
       if (!currentPiece.matrix[r][c]) continue
       const ny = currentPiece.y + r
       const nx = currentPiece.x + c
-      if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) {
-        board[ny][nx] = color
-      }
+      if (ny >= 0 && ny < ROWS && nx >= 0 && nx < COLS) board[ny][nx] = color
     }
   }
 }
@@ -309,25 +370,20 @@ function clearLines(): number {
       board.splice(r, 1)
       board.unshift(Array<string | null>(COLS).fill(null))
       cleared++
-      r++ // recheck same row index after splice
+      r++
     }
   }
   return cleared
 }
 
-// ── Piece management ─────────────────────────────────────────────────
+// ── Piece management ──────────────────────────────────────────────────
 function spawnPiece() {
   const type = nextPieceType ?? randomType()
   nextPieceType = randomType()
-
   const matrix = cloneMatrix(PIECE_MATRICES[type])
   const x = Math.floor((COLS - matrix[0].length) / 2)
-  const y = 0
-
-  currentPiece = { type, matrix, x, y }
-
-  if (!isValid(matrix, x, y)) {
-    // Board is full — game over
+  currentPiece = { type, matrix, x, y: 0 }
+  if (!isValid(matrix, x, 0)) {
     currentPiece = null
     endGame()
   }
@@ -345,7 +401,7 @@ function placePiece() {
   dropTimer = 0
 }
 
-// ── Drop ─────────────────────────────────────────────────────────────
+// ── Drop ──────────────────────────────────────────────────────────────
 function drop() {
   if (!currentPiece) return
   if (isValid(currentPiece.matrix, currentPiece.x, currentPiece.y + 1)) {
@@ -365,7 +421,7 @@ function hardDrop() {
   placePiece()
 }
 
-// ── Rotation with wall kicks ──────────────────────────────────────────
+// ── Rotation ──────────────────────────────────────────────────────────
 function tryRotate() {
   if (!currentPiece) return
   const rotated = rotateCW(currentPiece.matrix)
@@ -378,232 +434,236 @@ function tryRotate() {
   }
 }
 
-// ── Drawing ──────────────────────────────────────────────────────────
-function drawCell(
-  ctx: CanvasRenderingContext2D,
-  col: number,
-  row: number,
-  color: string,
-  alpha = 1,
-) {
-  const x = col * CELL
-  const y = row * CELL
+// ── Drawing ───────────────────────────────────────────────────────────
+function drawCell(ctx: CanvasRenderingContext2D, col: number, row: number, color: string, cell: number, alpha = 1) {
+  const x = col * cell
+  const y = row * cell
   ctx.globalAlpha = alpha
-
-  // Main fill
   ctx.fillStyle = color
-  ctx.fillRect(x + 1, y + 1, CELL - 2, CELL - 2)
-
-  // Top shine
+  ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2)
   ctx.fillStyle = 'rgba(255,255,255,0.30)'
-  ctx.fillRect(x + 1, y + 1, CELL - 2, 5)
-
-  // Bottom shadow
+  ctx.fillRect(x + 1, y + 1, cell - 2, 5)
   ctx.fillStyle = 'rgba(0,0,0,0.25)'
-  ctx.fillRect(x + 1, y + CELL - 6, CELL - 2, 5)
-
+  ctx.fillRect(x + 1, y + cell - 6, cell - 2, 5)
   ctx.globalAlpha = 1
 }
 
-function drawBoard(ctx: CanvasRenderingContext2D) {
-  // Background
+function drawBoardToCtx(ctx: CanvasRenderingContext2D, cell: number) {
   ctx.fillStyle = '#040f1f'
-  ctx.fillRect(0, 0, COLS * CELL, ROWS * CELL)
-
-  // Subtle grid lines
+  ctx.fillRect(0, 0, COLS * cell, ROWS * cell)
   ctx.strokeStyle = 'rgba(255,255,255,0.04)'
   ctx.lineWidth = 0.5
   for (let c = 0; c <= COLS; c++) {
-    ctx.beginPath()
-    ctx.moveTo(c * CELL, 0)
-    ctx.lineTo(c * CELL, ROWS * CELL)
-    ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(c * cell, 0); ctx.lineTo(c * cell, ROWS * cell); ctx.stroke()
   }
   for (let r = 0; r <= ROWS; r++) {
-    ctx.beginPath()
-    ctx.moveTo(0, r * CELL)
-    ctx.lineTo(COLS * CELL, r * CELL)
-    ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(0, r * cell); ctx.lineTo(COLS * cell, r * cell); ctx.stroke()
   }
-
-  // Placed cells
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      if (board[r][c]) {
-        drawCell(ctx, c, r, board[r][c]!)
-      }
+      if (board[r][c]) drawCell(ctx, c, r, board[r][c]!, cell)
     }
   }
 }
 
-function drawGhost(ctx: CanvasRenderingContext2D) {
+function drawGhostToCtx(ctx: CanvasRenderingContext2D, cell: number) {
   if (!currentPiece) return
   let ghostY = currentPiece.y
   while (isValid(currentPiece.matrix, currentPiece.x, ghostY + 1)) ghostY++
   if (ghostY === currentPiece.y) return
-
   const color = PIECE_COLORS[currentPiece.type]
   for (let r = 0; r < currentPiece.matrix.length; r++) {
     for (let c = 0; c < currentPiece.matrix[r].length; c++) {
-      if (currentPiece.matrix[r][c]) {
-        drawCell(ctx, currentPiece.x + c, ghostY + r, color, 0.18)
-      }
+      if (currentPiece.matrix[r][c]) drawCell(ctx, currentPiece.x + c, ghostY + r, color, cell, 0.18)
     }
   }
 }
 
-function drawCurrent(ctx: CanvasRenderingContext2D) {
+function drawCurrentToCtx(ctx: CanvasRenderingContext2D, cell: number) {
   if (!currentPiece) return
-  drawGhost(ctx)
+  drawGhostToCtx(ctx, cell)
   const color = PIECE_COLORS[currentPiece.type]
   for (let r = 0; r < currentPiece.matrix.length; r++) {
     for (let c = 0; c < currentPiece.matrix[r].length; c++) {
-      if (currentPiece.matrix[r][c]) {
-        drawCell(ctx, currentPiece.x + c, currentPiece.y + r, color)
-      }
+      if (currentPiece.matrix[r][c]) drawCell(ctx, currentPiece.x + c, currentPiece.y + r, color, cell)
     }
   }
 }
 
-function drawNextPiece() {
-  const ctx = nextCanvasRef.value?.getContext('2d')
-  if (!ctx || !nextPieceType) return
-
+function drawNextToCtx(ctx: CanvasRenderingContext2D, cell: number) {
+  if (!nextPieceType) return
   ctx.fillStyle = '#040f1f'
-  ctx.fillRect(0, 0, CELL * 4, CELL * 4)
-
+  ctx.fillRect(0, 0, cell * 4, cell * 4)
   const matrix = PIECE_MATRICES[nextPieceType]
   const color = PIECE_COLORS[nextPieceType]
   const offsetX = Math.floor((4 - matrix[0].length) / 2)
   const offsetY = Math.floor((4 - matrix.length) / 2)
-
   for (let r = 0; r < matrix.length; r++) {
     for (let c = 0; c < matrix[r].length; c++) {
-      if (matrix[r][c]) {
-        drawCell(ctx, offsetX + c, offsetY + r, color)
-      }
+      if (matrix[r][c]) drawCell(ctx, offsetX + c, offsetY + r, color, cell)
     }
   }
 }
 
 function render() {
+  // Desktop
   const ctx = canvasRef.value?.getContext('2d')
-  if (!ctx) return
-  drawBoard(ctx)
-  drawCurrent(ctx)
-  drawNextPiece()
+  if (ctx) {
+    drawBoardToCtx(ctx, CELL)
+    drawCurrentToCtx(ctx, CELL)
+  }
+  const nctx = nextCanvasRef.value?.getContext('2d')
+  if (nctx) drawNextToCtx(nctx, CELL)
+
+  // Mobile
+  const mctx = canvasRefMobile.value?.getContext('2d')
+  if (mctx) {
+    drawBoardToCtx(mctx, CELL_M)
+    drawCurrentToCtx(mctx, CELL_M)
+  }
+  const mnctx = nextCanvasRefMobile.value?.getContext('2d')
+  if (mnctx) drawNextToCtx(mnctx, CELL_M)
 }
 
 // ── Game loop ─────────────────────────────────────────────────────────
 function gameLoop(timestamp: number) {
   if (gameState.value !== 'playing') return
-
   const delta = timestamp - lastTime
   lastTime = timestamp
   dropTimer += delta
-
   const speed = SPEEDS[level.value - 1] ?? SPEEDS[0]
-
   if (dropTimer >= speed) {
     dropTimer = 0
     drop()
   }
-
   render()
   animFrameId = requestAnimationFrame(gameLoop)
 }
 
-// ── Controls ──────────────────────────────────────────────────────────
+// ── Keyboard controls ─────────────────────────────────────────────────
 function handleKey(e: KeyboardEvent) {
-  // Allow starting/restarting from overlay
   if (gameState.value === 'idle' || gameState.value === 'gameover') {
     if (e.key === 'Enter') startGame()
     return
   }
-
   if (e.key === 'p' || e.key === 'P') {
-    e.preventDefault()
-    togglePause()
-    return
+    e.preventDefault(); togglePause(); return
   }
-
   if (gameState.value !== 'playing' || !currentPiece) return
 
   switch (e.key) {
     case 'ArrowLeft':
       e.preventDefault()
-      if (isValid(currentPiece.matrix, currentPiece.x - 1, currentPiece.y))
-        currentPiece.x--
+      if (isValid(currentPiece.matrix, currentPiece.x - 1, currentPiece.y)) currentPiece.x--
       break
     case 'ArrowRight':
       e.preventDefault()
-      if (isValid(currentPiece.matrix, currentPiece.x + 1, currentPiece.y))
-        currentPiece.x++
+      if (isValid(currentPiece.matrix, currentPiece.x + 1, currentPiece.y)) currentPiece.x++
       break
     case 'ArrowDown':
       e.preventDefault()
-      // Soft drop: one row per keydown (browser key-repeat handles hold)
       if (isValid(currentPiece.matrix, currentPiece.x, currentPiece.y + 1)) {
-        currentPiece.y++
-        score.value += 1
-        dropTimer = 0
+        currentPiece.y++; score.value += 1; dropTimer = 0
       }
       break
     case 'ArrowUp':
     case 'z':
     case 'Z':
-      e.preventDefault()
-      tryRotate()
-      break
+      e.preventDefault(); tryRotate(); break
     case ' ':
-      e.preventDefault()
-      hardDrop()
-      break
+      e.preventDefault(); hardDrop(); break
   }
 }
 
+// ── Touch controls ────────────────────────────────────────────────────
+let touchStartX = 0
+let touchStartY = 0
+let touchStartTime = 0
+let lastTouchX = 0
+let lastTouchY = 0
+let dragAccumX = 0  // sub-cell horizontal accumulator
 
-function handleMobileAction(action: string) {
+function onTouchStart(e: TouchEvent) {
+  const t = e.touches[0]
+  touchStartX = lastTouchX = t.clientX
+  touchStartY = lastTouchY = t.clientY
+  touchStartTime = Date.now()
+  dragAccumX = 0
+}
+
+function onTouchMove(e: TouchEvent) {
   if (gameState.value !== 'playing' || !currentPiece) return
-  switch (action) {
-    case 'left':
-      if (isValid(currentPiece.matrix, currentPiece.x - 1, currentPiece.y))
-        currentPiece.x--
-      break
-    case 'right':
-      if (isValid(currentPiece.matrix, currentPiece.x + 1, currentPiece.y))
-        currentPiece.x++
-      break
-    case 'rotate':
-      tryRotate()
-      break
-    case 'down':
-      drop()
-      break
-    case 'harddrop':
-      hardDrop()
-      break
+  const t = e.touches[0]
+  const dx = t.clientX - lastTouchX
+  const dy = t.clientY - lastTouchY
+
+  // Horizontal drag → move piece left/right
+  dragAccumX += dx
+  const colStep = Math.trunc(dragAccumX / CELL_M)
+  if (colStep !== 0) {
+    const dir = colStep > 0 ? 1 : -1
+    const steps = Math.abs(colStep)
+    for (let i = 0; i < steps; i++) {
+      if (isValid(currentPiece.matrix, currentPiece.x + dir, currentPiece.y))
+        currentPiece.x += dir
+    }
+    dragAccumX -= colStep * CELL_M
   }
-  render()
+
+  // Downward drag → soft drop (every half-cell of movement)
+  if (dy > CELL_M * 0.5) {
+    const rows = Math.floor(dy / (CELL_M * 0.5))
+    for (let i = 0; i < rows; i++) {
+      if (isValid(currentPiece.matrix, currentPiece.x, currentPiece.y + 1)) {
+        currentPiece.y++
+        score.value += 1
+      }
+    }
+    dropTimer = 0
+    lastTouchY = t.clientY
+  }
+
+  lastTouchX = t.clientX
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (gameState.value === 'idle' || gameState.value === 'gameover') {
+    startGame(); return
+  }
+  if (gameState.value === 'paused') {
+    togglePause(); return
+  }
+  if (gameState.value !== 'playing' || !currentPiece) return
+
+  const t = e.changedTouches[0]
+  const totalDx = t.clientX - touchStartX
+  const totalDy = t.clientY - touchStartY
+  const dt = Date.now() - touchStartTime
+  const absDx = Math.abs(totalDx)
+  const absDy = Math.abs(totalDy)
+
+  // Tap (very little movement, quick) → rotate
+  if (absDx < 12 && absDy < 12 && dt < 300) {
+    tryRotate()
+    return
+  }
+
+  // Fast upward swipe → hard drop
+  const velocityY = absDy / dt
+  if (totalDy < -40 && velocityY > 0.4 && absDy > absDx) {
+    hardDrop()
+  }
 }
 
 // ── Game management ───────────────────────────────────────────────────
 function startGame() {
   cancelAnimationFrame(animFrameId)
-
-  score.value = 0
-  level.value = 1
-  lines.value = 0
-  saving.value = false
-  savedBest.value = false
-  dropTimer = 0
-
+  score.value = 0; level.value = 1; lines.value = 0
+  saving.value = false; savedBest.value = false; dropTimer = 0
   initBoard()
   nextPieceType = randomType()
   spawnPiece()
-
   gameState.value = 'playing'
-
   nextTick(() => {
     gameRoot.value?.focus()
     lastTime = performance.now()
@@ -628,7 +688,6 @@ async function endGame() {
   gameState.value = 'gameover'
   cancelAnimationFrame(animFrameId)
   render()
-
   if (user.value && score.value > 0) {
     saving.value = true
     try {
@@ -649,7 +708,7 @@ async function endGame() {
 onMounted(() => {
   nextTick(() => {
     gameRoot.value?.focus()
-    render() // draw empty board
+    render()
   })
 })
 
@@ -659,6 +718,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ── Desktop panels ─────────────────────────── */
 .info-panel {
   @apply rounded-xl bg-brand-800/60 border border-white/10 p-3 text-center;
 }
@@ -668,21 +728,27 @@ onUnmounted(() => {
 .info-value {
   @apply text-lg font-bold text-white;
 }
+
+/* ── Mobile stat pills ─────────────────────── */
+.stat-pill {
+  @apply rounded-xl bg-brand-800/60 border border-white/10 px-2 py-1.5 text-center flex flex-col items-center justify-center;
+}
+.stat-label {
+  @apply text-[9px] text-slate-500 uppercase tracking-wide leading-none mb-0.5;
+}
+.stat-val {
+  @apply text-sm font-bold text-white leading-none;
+}
+
+/* ── Shared buttons ─────────────────────────── */
 .btn-primary {
   @apply inline-flex items-center justify-center rounded-2xl bg-accent-500 hover:bg-accent-400 active:bg-accent-600 text-brand-900 font-semibold transition-all duration-150 shadow-lg shadow-accent-500/20;
 }
 .btn-ghost {
   @apply inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white font-medium transition-all duration-150 px-4 py-2 text-sm;
 }
-.mobile-btn {
-  @apply rounded-xl border border-white/10 bg-brand-800/60 text-white text-sm font-medium py-3 px-4 active:bg-white/10 transition-colors;
-}
-.t-fade-enter-active,
-.t-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.t-fade-enter-from,
-.t-fade-leave-to {
-  opacity: 0;
-}
+
+/* ── Transitions ────────────────────────────── */
+.t-fade-enter-active, .t-fade-leave-active { transition: opacity 0.2s ease; }
+.t-fade-enter-from, .t-fade-leave-to { opacity: 0; }
 </style>
