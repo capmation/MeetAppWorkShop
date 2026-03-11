@@ -48,7 +48,10 @@ watch(
     // Subscribe to the next completed navigation.
     // If auth triggered a redirect (e.g. → /  or → /home), afterEach fires
     // once the new route is fully committed, so the layout has already switched.
-    const unsubscribe = router.afterEach(() => {
+    const unsubscribe = router.afterEach((_to, _from, failure) => {
+      // Skip cancelled/redirected navigations (e.g. guest middleware redirecting / → /home).
+      // Only hide the overlay once the final, successful navigation commits.
+      if (failure) return
       unsubscribe()
       // One extra tick so the new page's DOM is painted before we reveal it
       nextTick(() => { overlayVisible.value = false })
