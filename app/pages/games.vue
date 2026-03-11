@@ -123,7 +123,7 @@
 import { GAME_DEFINITIONS } from '~/stores/games.store'
 import type { TetrisMatchPlayer, TetrisRanking } from '~/types/socket.types'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { user } = useAuth()
 

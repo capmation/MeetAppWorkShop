@@ -1,5 +1,10 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4 bg-brand-900/95 page-surface">
+  <!--
+    fixed inset-0 guarantees the layout fills the full viewport regardless
+    of any NuxtLayout parent wrapper or layout-switch transition state.
+    overflow-y-auto allows scrolling if the form grows taller than the screen.
+  -->
+  <div class="fixed inset-0 overflow-y-auto bg-brand-900/95 page-surface flex items-center justify-center px-4 py-8">
     <div class="w-full max-w-md animate-fade-in bg-brand-900/80 border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/30 backdrop-blur">
       <!-- Logo -->
       <div class="text-center mb-10">

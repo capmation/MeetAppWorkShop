@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
+definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const { projects, loading, fetchProjects, deleteProject } = useProjects()
 const { loading: authLoading } = useAuth()

@@ -130,7 +130,7 @@
 import { h } from 'vue'
 import type { HomePage } from '~/composables/useUserSettings'
 
-definePageMeta({ layout: 'welcome' })
+definePageMeta({ layout: 'welcome', middleware: 'auth' })
 
 const { user, logout } = useAuth()
 const router = useRouter()

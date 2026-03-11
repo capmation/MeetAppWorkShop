@@ -109,7 +109,7 @@
 <script setup lang="ts">
 import type { Project } from '~/types/project.types'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({ layout: 'default', middleware: 'auth' })
 
 const route = useRoute()
 const projectId = route.params.id as string

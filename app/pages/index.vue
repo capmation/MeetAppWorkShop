@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'auth' })
+definePageMeta({ layout: 'auth', middleware: 'guest' })
 
 const { loginWithGoogle, loginWithEmail, registerWithEmail, isAuthenticated } = useAuth()
 const router = useRouter()

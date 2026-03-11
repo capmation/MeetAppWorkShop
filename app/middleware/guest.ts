@@ -1,14 +1,16 @@
 import { watch } from 'vue'
 import { useAuthStore } from '~/stores/auth.store'
 
+/**
+ * Guest middleware — use on public-only pages (e.g. login).
+ * Redirects authenticated users to /home so they don't land on the login page.
+ */
 export default defineNuxtRouteMiddleware(async () => {
-  // Firebase auth is client-only — SSR has no session, skip there
   if (import.meta.server) return
 
   const authStore = useAuthStore()
 
-  // Wait for onAuthStateChanged to fire before checking
-  // (Firebase is async on first load — loading starts as true)
+  // Wait for Firebase auth to settle
   if (authStore.loading) {
     await new Promise<void>((resolve) => {
       const stop = watch(
@@ -20,7 +22,7 @@ export default defineNuxtRouteMiddleware(async () => {
     })
   }
 
-  if (!authStore.isAuthenticated) {
-    return navigateTo('/', { replace: true })
+  if (authStore.isAuthenticated) {
+    return navigateTo('/home', { replace: true })
   }
 })
