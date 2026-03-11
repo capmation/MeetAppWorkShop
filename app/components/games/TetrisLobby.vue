@@ -8,16 +8,29 @@
         <p class="font-semibold text-white truncate">{{ user?.displayName || 'Anonymous' }}</p>
         <p class="text-xs text-slate-400">Ready to battle?</p>
       </div>
-      <span class="inline-flex items-center gap-1.5 text-xs text-accent-400 font-medium">
-        <span class="w-1.5 h-1.5 rounded-full bg-accent-400 animate-pulse" />
-        Online
+      <span
+        :class="[
+          'inline-flex items-center gap-1.5 text-xs font-medium transition-colors',
+          lobbyConnecting ? 'text-slate-500' : 'text-accent-400',
+        ]"
+      >
+        <span :class="['w-1.5 h-1.5 rounded-full', lobbyConnecting ? 'bg-slate-600' : 'bg-accent-400 animate-pulse']" />
+        {{ lobbyConnecting ? 'Connecting…' : 'Online' }}
       </span>
     </div>
+
+    <!-- Connecting skeleton -->
+    <Transition name="t-fade">
+      <div v-if="lobbyConnecting" class="rounded-2xl bg-brand-800/40 border border-white/10 p-8 flex flex-col items-center gap-4">
+        <AppLoader size="md" class="text-accent-400" />
+        <p class="text-sm text-slate-400">Connecting to lobby…</p>
+      </div>
+    </Transition>
 
     <!-- Countdown overlay (shown when match is found) -->
     <Transition name="t-fade">
       <div
-        v-if="matchFound"
+        v-if="matchFound && !lobbyConnecting"
         class="rounded-2xl bg-brand-900/95 border border-accent-400/30 p-8 text-center"
       >
         <p class="text-slate-400 text-sm mb-2">Match found! Starting in…</p>
@@ -38,82 +51,108 @@
     </Transition>
 
     <!-- Queue section -->
-    <div v-if="!matchFound" class="rounded-2xl bg-brand-800/40 border border-white/10 overflow-hidden">
-      <div class="px-5 py-4 border-b border-white/5">
-        <h3 class="font-semibold text-white flex items-center gap-2">
-          <span>⚡</span> Public Queue
-        </h3>
-        <p class="text-xs text-slate-400 mt-0.5">2–4 players — match starts automatically</p>
-      </div>
+    <Transition name="t-fade">
+      <div v-if="!matchFound && !lobbyConnecting" class="rounded-2xl bg-brand-800/40 border border-white/10 overflow-hidden">
+        <div class="px-5 py-4 border-b border-white/5">
+          <h3 class="font-semibold text-white flex items-center gap-2">
+            <span>⚡</span> Public Queue
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">2–4 players — match starts automatically</p>
+        </div>
 
-      <div class="p-5">
-        <!-- Queue status bar -->
-        <div class="flex items-center gap-3 mb-5">
-          <div class="flex-1 h-2 bg-brand-700 rounded-full overflow-hidden">
+        <div class="p-5">
+          <!-- Queue progress bar -->
+          <div class="flex items-center gap-3 mb-5">
+            <div class="flex-1 h-2 bg-brand-700 rounded-full overflow-hidden">
+              <div
+                class="h-full bg-accent-400 rounded-full transition-all duration-500"
+                :style="{ width: `${(queueSize / 4) * 100}%` }"
+              />
+            </div>
+            <span class="text-sm font-mono text-white shrink-0">{{ queueSize }}/4</span>
+          </div>
+
+          <!-- Player slots -->
+          <div class="grid grid-cols-4 gap-2 mb-5">
             <div
-              class="h-full bg-accent-400 rounded-full transition-all duration-500"
-              :style="{ width: `${(queueSize / 4) * 100}%` }"
-            />
+              v-for="i in 4"
+              :key="i"
+              :class="[
+                'flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border transition-all duration-300',
+                i <= queueSize
+                  ? 'bg-accent-500/10 border-accent-400/30'
+                  : 'bg-brand-900/30 border-white/5',
+              ]"
+            >
+              <div :class="['w-6 h-6 rounded-full flex items-center justify-center text-xs', i <= queueSize ? 'bg-accent-400/20 text-accent-400' : 'bg-white/5 text-slate-600']">
+                {{ i <= queueSize ? '✓' : i }}
+              </div>
+              <span class="text-[9px] text-slate-500 uppercase tracking-wide">
+                {{ i <= queueSize ? 'Ready' : 'Waiting' }}
+              </span>
+            </div>
           </div>
-          <span class="text-sm font-mono text-white shrink-0">{{ queueSize }}/4</span>
-        </div>
 
-        <!-- Join / Leave queue -->
-        <button
-          v-if="!inQueue"
-          class="w-full btn-primary py-3 text-base font-semibold"
-          :disabled="joining"
-          @click="onJoinQueue"
-        >
-          <span v-if="joining" class="flex items-center justify-center gap-2">
-            <AppLoader size="xs" /> Joining…
-          </span>
-          <span v-else>🎮 Join Queue</span>
-        </button>
-
-        <div v-else class="flex flex-col items-center gap-3">
-          <div class="flex items-center gap-2 text-accent-400">
-            <span class="w-2 h-2 rounded-full bg-accent-400 animate-pulse" />
-            <span class="text-sm font-medium">Searching for opponents…</span>
-          </div>
-          <p v-if="queueSize >= 2" class="text-xs text-slate-400">
-            {{ 4 - queueSize }} more player(s) can join · match starts in ~10s
-          </p>
-          <p v-else class="text-xs text-slate-400">Waiting for at least one more player</p>
-          <button class="btn-ghost px-5 py-2 text-sm" @click="onLeaveQueue">
-            Leave Queue
+          <!-- Join / Leave button -->
+          <button
+            v-if="!inQueue"
+            class="w-full btn-primary py-3 text-base font-semibold"
+            :disabled="joining"
+            @click="onJoinQueue"
+          >
+            <span v-if="joining" class="flex items-center justify-center gap-2">
+              <AppLoader size="xs" /> Joining…
+            </span>
+            <span v-else>🎮 Join Queue</span>
           </button>
+
+          <div v-else class="flex flex-col items-center gap-3">
+            <div class="flex items-center gap-2 text-accent-400">
+              <AppLoader size="xs" class="text-accent-400" />
+              <span class="text-sm font-medium">Searching for opponents…</span>
+            </div>
+            <p v-if="queueSize >= 2" class="text-xs text-slate-400 text-center">
+              {{ 4 - queueSize }} more player{{ 4 - queueSize === 1 ? '' : 's' }} can join · match starts in ~10s
+            </p>
+            <p v-else class="text-xs text-slate-400">Waiting for at least one more player</p>
+            <button class="btn-ghost px-5 py-2 text-sm" @click="onLeaveQueue">Leave Queue</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Online players in lobby -->
-    <div v-if="!matchFound && lobbyPlayers.length > 0" class="rounded-2xl bg-brand-800/40 border border-white/10 overflow-hidden">
-      <div class="px-5 py-4 border-b border-white/5">
-        <h3 class="font-semibold text-white flex items-center gap-2">
-          <span>👥</span> In Lobby
-          <span class="text-xs text-slate-500 font-normal ml-1">({{ lobbyPlayers.length }})</span>
-        </h3>
-      </div>
-      <ul class="divide-y divide-white/5">
-        <li
-          v-for="p in lobbyPlayers"
-          :key="p.uid"
-          class="flex items-center gap-3 px-5 py-3"
-        >
-          <AppAvatar :name="p.displayName" :photo="p.photoURL" size="xs" />
-          <span class="flex-1 text-sm text-white truncate">{{ p.displayName }}</span>
-          <span
-            :class="[
-              'text-[10px] px-2 py-0.5 rounded-full font-medium',
-              p.inQueue ? 'bg-accent-500/20 text-accent-400' : 'bg-white/5 text-slate-500',
-            ]"
+    <Transition name="t-fade">
+      <div
+        v-if="!matchFound && !lobbyConnecting && otherLobbyPlayers.length > 0"
+        class="rounded-2xl bg-brand-800/40 border border-white/10 overflow-hidden"
+      >
+        <div class="px-5 py-4 border-b border-white/5">
+          <h3 class="font-semibold text-white flex items-center gap-2">
+            <span>👥</span> In Lobby
+            <span class="text-xs text-slate-500 font-normal ml-1">({{ otherLobbyPlayers.length }})</span>
+          </h3>
+        </div>
+        <ul class="divide-y divide-white/5">
+          <li
+            v-for="p in otherLobbyPlayers"
+            :key="p.uid"
+            class="flex items-center gap-3 px-5 py-3"
           >
-            {{ p.inQueue ? 'In Queue' : 'Browsing' }}
-          </span>
-        </li>
-      </ul>
-    </div>
+            <AppAvatar :name="p.displayName" :photo="p.photoURL" size="xs" />
+            <span class="flex-1 text-sm text-white truncate">{{ p.displayName }}</span>
+            <span
+              :class="[
+                'text-[10px] px-2 py-0.5 rounded-full font-medium',
+                p.inQueue ? 'bg-accent-500/20 text-accent-400' : 'bg-white/5 text-slate-500',
+              ]"
+            >
+              {{ p.inQueue ? 'In Queue' : 'Browsing' }}
+            </span>
+          </li>
+        </ul>
+      </div>
+    </Transition>
 
   </div>
 </template>
@@ -126,35 +165,21 @@ const emit = defineEmits<{
 }>()
 
 const { user } = useAuth()
-const { getSocket, connect } = useSocket()
+const { getSocket } = useSocket()
 const mp = useTetrisMultiplayer()
 
 const lobbyPlayers = ref<TetrisLobbyPlayer[]>([])
 const queueSize = ref(0)
 const inQueue = ref(false)
 const joining = ref(false)
+const lobbyConnecting = ref(true)
 const matchFound = ref(false)
 const countdown = ref(3)
 const pendingPlayers = ref<TetrisMatchPlayer[]>([])
 
-// Filter self out of lobby display
 const otherLobbyPlayers = computed(() =>
   lobbyPlayers.value.filter(p => p.uid !== user.value?.uid),
 )
-
-// Show all players including self
-const allLobbyPlayers = computed(() => lobbyPlayers.value)
-
-// Use computed to expose the right list
-const visibleLobbyPlayers = computed(() =>
-  lobbyPlayers.value.filter(p => p.uid !== user.value?.uid),
-)
-
-// Alias for template
-const _lobbyPlayers = computed(() => lobbyPlayers.value.filter(p => p.uid !== user.value?.uid))
-
-// expose as lobbyPlayers in template via computed
-const lobbyPlayersComputed = _lobbyPlayers
 
 function setupSocketListeners() {
   const s = getSocket()
@@ -196,7 +221,6 @@ async function onJoinQueue() {
   joining.value = true
   try {
     await mp.joinLobby()
-    await nextTick()
     mp.joinQueue()
     inQueue.value = true
   }
@@ -212,19 +236,18 @@ function onLeaveQueue() {
 
 onMounted(async () => {
   setupSocketListeners()
-  await mp.joinLobby()
+  try {
+    await mp.joinLobby()
+  }
+  finally {
+    lobbyConnecting.value = false
+  }
 })
 
 onUnmounted(() => {
   teardownSocketListeners()
-  if (!matchFound.value) {
-    mp.leaveLobby()
-  }
+  if (!matchFound.value) mp.leaveLobby()
 })
-</script>
-
-<script lang="ts">
-// Re-export lobbyPlayers as the filtered list for the template
 </script>
 
 <style scoped>
